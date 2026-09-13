@@ -1,5 +1,10 @@
 {
   "$schema": "./node_modules/@angular-devkit/schematics/collection-schema.json",
   "schematics": {
+    "schematic": {
+      "factory": "./lib/schematic/schematic.factory#main",
+      "description": "Create a Nest schematic.",
+      "schema": "./lib/schematic/schema.json"
+    }
   }
 }
