@@ -52,6 +52,14 @@ export interface ResourceOptions {
    */
   crud?: boolean;
   /**
+   * The database used by the resource ("none" behaves like the option was not passed).
+   */
+  db?: 'mongodb' | 'none';
+  /**
+   * The ORM used by the resource ("none" behaves like the option was not passed).
+   */
+  orm?: 'mongoose' | 'none';
+  /**
    * Flag to indicate if a directory is created.
    */
   flat?: boolean;

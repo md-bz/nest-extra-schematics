@@ -45,6 +45,7 @@ export function main(options: ResourceOptions): Rule {
     return branchAndMerge(
       chain([
         addMappedTypesDependencyIfApplies(options),
+        addMongooseDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
         mergeWith(generate(options)),
@@ -78,14 +79,39 @@ function transform(options: ResourceOptions): ResourceOptions {
     ? target.path
     : join(target.path as Path, target.name);
   target.isSwaggerInstalled = options.isSwaggerInstalled ?? false;
+  // ponytail: "none" is the x-prompt escape hatch for "no database", normalized away so the rest flows as if no flag was passed
+  if (target.db === 'none') {
+    target.db = undefined;
+  }
+  if (target.orm === 'none') {
+    target.orm = undefined;
+  }
+  if (target.db === 'mongodb' && target.orm === undefined) {
+    target.orm = 'mongoose';
+  }
+  if (target.orm === 'mongoose' && target.db === undefined) {
+    target.db = 'mongodb';
+  }
+  if (
+    (target.db !== undefined && target.db !== 'mongodb') ||
+    (target.orm !== undefined && target.orm !== 'mongoose')
+  ) {
+    throw new SchematicsException(
+      'Only "--db mongodb" with "--orm mongoose" is supported for now.',
+    );
+  }
 
   return target;
 }
 
 function generate(options: ResourceOptions): Source {
+  const isMongoose = options.orm === 'mongoose';
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
       filter((path) => {
+        if (path.includes('/schemas/')) {
+          return isMongoose && !!options.crud;
+        }
         if (path.endsWith('.dto.ts')) {
           return (
             options.type !== 'graphql-code-first' &&
@@ -128,7 +154,8 @@ function generate(options: ResourceOptions): Source {
           // Entity class file workaround
           // When an invalid glob path for entities has been specified (on the application part)
           // TypeORM was trying to load a template class
-          return !!options.crud;
+          // mongoose uses schemas/ instead, so no entity file
+          return !isMongoose && !!options.crud;
         }
         return true;
       }),
@@ -141,6 +168,7 @@ function generate(options: ResourceOptions): Source {
       template({
         ...strings,
         ...options,
+        isMongoose,
         lowercased: (name: string) => {
           const classifiedName = classify(name);
           return (
@@ -178,6 +206,32 @@ function addDeclarationToModule(options: ResourceOptions): Rule {
       } as DeclarationOptions),
     );
     return tree;
+  };
+}
+
+function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (options.orm !== 'mongoose') {
+      return;
+    }
+    try {
+      let installed = false;
+      for (const name of ['@nestjs/mongoose', 'mongoose']) {
+        if (!getPackageJsonDependency(host, name)) {
+          addPackageJsonDependency(host, {
+            type: NodeDependencyType.Default,
+            name,
+            version: '*',
+          });
+          installed = true;
+        }
+      }
+      if (installed) {
+        context.addTask(new NodePackageInstallTask());
+      }
+    } catch {
+      // ignore if "package.json" not found
+    }
   };
 }
 

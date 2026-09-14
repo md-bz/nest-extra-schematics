@@ -1,13 +1,13 @@
 import { Create<%= singular(classify(name)) %>Input } from './create-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';<% if (type === 'graphql-code-first') { %>
-import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
+import { InputType, Field, <% if (isMongoose) { %>ID<% } else { %>Int<% } %>, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class Update<%= singular(classify(name)) %>Input extends PartialType(Create<%= singular(classify(name)) %>Input) {
-  @Field(() => Int)
-  id: number;
+  @Field(() => <% if (isMongoose) { %>ID<% } else { %>Int<% } %>)
+  id: <% if (isMongoose) { %>string<% } else { %>number<% } %>;
 }<% } else { %>
 import { PartialType } from '@nestjs/mapped-types';
 
 export class Update<%= singular(classify(name)) %>Input extends PartialType(Create<%= singular(classify(name)) %>Input) {
-  id: number;
+  id: <% if (isMongoose) { %>string<% } else { %>number<% } %>;
 }<% } %>

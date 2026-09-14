@@ -1533,4 +1533,70 @@ type Mutation {
       "import { UsersController } from './users.controller'",
     );
   });
+
+  describe('[REST API - Mongoose]', () => {
+    it('should generate schema file instead of entity', async () => {
+      const options: ResourceOptions = {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'mongoose',
+      };
+      const tree = await runner.runSchematic('resource', options);
+      expect(tree.files).toEqual([
+        '/users/users.controller.spec.ts',
+        '/users/users.controller.ts',
+        '/users/users.module.ts',
+        '/users/users.service.spec.ts',
+        '/users/users.service.ts',
+        '/users/dto/create-user.dto.ts',
+        '/users/dto/update-user.dto.ts',
+        '/users/schemas/user.schema.ts',
+      ]);
+    });
+
+    it('should default to mongoose when only "db" is given', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mongodb',
+      });
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
+    });
+
+    it('should treat "none" like the options were not passed', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'none',
+        orm: 'none',
+      });
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    });
+
+    it('should wire MongooseModule, model injection and string ids', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'mongoose',
+      });
+      expect(tree.readContent('/users/schemas/user.schema.ts')).toContain(
+        'export const UserSchema = SchemaFactory.createForClass(User);',
+      );
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        'MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        '@InjectModel(User.name) private userModel: Model<UserDocument>',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        'return createdUser.save();',
+      );
+      expect(tree.readContent('/users/users.controller.ts')).toContain(
+        'return this.usersService.findOne(id);',
+      );
+      expect(tree.readContent('/users/users.controller.ts')).not.toContain(
+        '+id',
+      );
+    });
+  });
 });
