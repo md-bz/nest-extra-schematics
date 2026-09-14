@@ -16,7 +16,7 @@ describe('<%= classify(name) %>Options Factory', () => {
     const options: <%= classify(name) %>Options = {
       name: 'foo',
     };
-    const tree = await runner.runSchematic('schematic', options);
+    const tree = await runner.runSchematic('<%= lowercased(name) %>', options);
     expect(tree).toBeDefined();
   });
 

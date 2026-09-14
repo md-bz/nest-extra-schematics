@@ -1,6 +1,5 @@
 {
-	"generateOptions": {
-		"spec": false,
-		"specFileSuffix": "test"
-	}
+  "generateOptions": {
+    "specFileSuffix": "test"
+  }
 }
