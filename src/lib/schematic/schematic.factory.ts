@@ -1,4 +1,4 @@
-import { join, Path, strings } from '@angular-devkit/core';
+import { join, normalize, Path, strings } from '@angular-devkit/core';
 import {
   apply,
   chain,
@@ -81,12 +81,10 @@ function addDeclarationToCollection(options: SchematicOptions): Rule {
       return tree;
     }
 
-    const collection = 'src/collection.json';
+    const collection = findCollection(tree, normalize(options.path ?? ''));
 
-    if (!tree.exists(collection)) {
-      throw new SchematicsException(
-        `Collection file ${collection} does not exist.`,
-      );
+    if (!collection) {
+      throw new SchematicsException(`Collection file does not exist.`);
     }
 
     const collectionContent = JSON.parse(tree.read(collection)!.toString());
@@ -105,4 +103,21 @@ function addDeclarationToCollection(options: SchematicOptions): Rule {
     tree.overwrite(collection, JSON.stringify(collectionContent, null, 2));
     return tree;
   };
+}
+
+function findCollection(tree: Tree, path?: Path): Path | null {
+  if (!path) {
+    return null;
+  }
+
+  const dir = tree.getDir(path);
+  const file = dir.subfiles.find((file) => {
+    return file.valueOf() === 'collection.json';
+  });
+
+  if (file) {
+    return join(path, 'collection.json');
+  }
+
+  return findCollection(tree, dir.parent?.path);
 }
