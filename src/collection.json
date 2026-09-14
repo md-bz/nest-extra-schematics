@@ -1,10 +1,21 @@
 {
   "$schema": "./node_modules/@angular-devkit/schematics/collection-schema.json",
   "schematics": {
+    "application": {
+      "factory": "./lib/application/application.factory#main",
+      "description": "Create a Nest application.",
+      "schema": "./lib/application/schema.json"
+    },
     "schematic": {
       "factory": "./lib/schematic/schematic.factory#main",
       "description": "Create a Nest schematic.",
       "schema": "./lib/schematic/schema.json"
+    },
+    "resource": {
+      "factory": "./lib/resource/resource.factory#main",
+      "description": "Create a Nest resource.",
+      "schema": "./lib/resource/schema.json",
+      "aliases": ["res"]
     }
   }
 }
