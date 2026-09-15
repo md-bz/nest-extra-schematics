@@ -16,6 +16,12 @@
       "description": "Create a Nest resource.",
       "schema": "./lib/resource/schema.json",
       "aliases": ["res"]
+    },
+    "user": {
+      "factory": "./lib/user/user.factory#main",
+      "description": "Create a Nest user resource (REST + MongoDB/Mongoose).",
+      "schema": "./lib/user/schema.json",
+      "aliases": ["u"]
     }
   }
 }
