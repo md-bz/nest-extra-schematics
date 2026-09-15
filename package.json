@@ -1,7 +1,7 @@
 {
-  "name": "extra-schematics",
+  "name": "nest-extra-schematics",
   "version": "0.0.1",
-  "description": "Nest - modern, fast, powerful node.js web framework (@schematics)",
+  "description": "Nest schematics that extend the default schematics",
   "type": "module",
   "main": "dist/index.js",
   "files": [
