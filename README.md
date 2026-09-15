@@ -9,12 +9,6 @@ nest cli is an awesome tool, yet i find myself writing the same codes a lot, tha
 ## Installation
 
 ```bash
-$ npm install -g nest-extra-schematics
-```
-
-or install it as a dev dependency
-
-```bash
 $ npm install --save-dev nest-extra-schematics
 ```
 
