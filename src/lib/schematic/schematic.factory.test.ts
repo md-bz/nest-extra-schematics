@@ -125,7 +125,6 @@ describe('Schematic Factory', () => {
     expect(
       files.find((filename) => filename === '/bar/foo/foo.factory.ts'),
     ).not.toBeUndefined();
-    console.log(tree.readContent('/bar/foo/foo.factory.ts'));
     expect(tree.readContent('/bar/foo/foo.factory.ts')).toEqual(factoryContent);
   });
 });
