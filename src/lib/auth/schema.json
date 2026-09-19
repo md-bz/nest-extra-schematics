@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "SchematicsNestAuth",
+  "title": "Nest Auth Options Schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the auth module.",
+      "default": "auth",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What name would you like to use for the auth module (e.g., \"auth\")?"
+    },
+    "method": {
+      "type": "string",
+      "description": "The authentication method.",
+      "default": "jwt",
+      "enum": ["jwt"],
+      "x-prompt": {
+        "message": "Which authentication method do you want to use?",
+        "type": "list",
+        "items": [{ "value": "jwt", "label": "JWT (Passport + access token)" }]
+      }
+    },
+    "usernameField": {
+      "type": "string",
+      "description": "The user field login accepts alongside the password.",
+      "default": "email",
+      "x-prompt": "Which field should login accept alongside the password (email by default)?"
+    },
+    "db": {
+      "type": "string",
+      "description": "The database used by the user resource.",
+      "default": "mongodb",
+      "enum": ["none", "mongodb"],
+      "x-prompt": {
+        "message": "Which database does the user resource use?",
+        "type": "list",
+        "items": [
+          { "value": "none", "label": "None" },
+          { "value": "mongodb", "label": "MongoDB" }
+        ]
+      }
+    },
+    "orm": {
+      "type": "string",
+      "description": "The ORM used by the user resource.",
+      "default": "mongoose",
+      "enum": ["none", "mongoose"],
+      "x-prompt": {
+        "message": "Which ORM does the user resource use?",
+        "type": "list",
+        "items": [
+          { "value": "none", "label": "None" },
+          { "value": "mongoose", "label": "Mongoose" }
+        ]
+      }
+    },
+    "path": {
+      "type": "string",
+      "format": "path",
+      "description": "The path to create the auth module."
+    },
+    "sourceRoot": {
+      "type": "string",
+      "description": "Nest auth source root directory."
+    },
+    "flat": {
+      "type": "boolean",
+      "default": false,
+      "description": "Flag to indicate if a directory is created."
+    },
+    "spec": {
+      "type": "boolean",
+      "default": true,
+      "description": "Specifies if specs file are generated."
+    },
+    "specFileSuffix": {
+      "type": "string",
+      "default": "spec",
+      "description": "Specifies the file suffix of spec files."
+    },
+    "skipImport": {
+      "type": "boolean",
+      "description": "Flag to skip the module import.",
+      "default": false
+    },
+    "format": {
+      "type": "boolean",
+      "default": false,
+      "description": "Format generated files using Prettier if available."
+    }
+  }
+}

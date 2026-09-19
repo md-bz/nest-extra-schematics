@@ -28,6 +28,9 @@ describe('User Factory', () => {
     expect(tree.readContent('/users/users.module.ts')).toContain(
       'MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])',
     );
+    expect(tree.readContent('/users/users.module.ts')).toContain(
+      'exports: [UsersService]',
+    );
   });
 
   it('should generate a user schema with argon2 password hashing', async () => {
@@ -77,6 +80,14 @@ describe('User Factory', () => {
     expect(service).toContain('UnauthorizedException');
   });
 
+  it('should expose email/username finders for auth login', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {});
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain('findByEmail(email: string)');
+    expect(service).toContain('findByUsername(username: string)');
+    expect(service).toContain("select('+password')");
+  });
+
   it('should not add a password route off the rest mongoose path', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       type: 'microservice',
@@ -86,6 +97,9 @@ describe('User Factory', () => {
     expect(controller).not.toContain('changePassword');
     expect(service).not.toContain('changePassword');
     expect(tree.exists('/users/dto/change-password.dto.ts')).toBe(false);
+    expect(tree.readContent('/users/users.module.ts')).not.toContain(
+      'exports:',
+    );
     expect(tree.readContent('/users/dto/update-user.dto.ts')).toContain(
       'OmitType(',
     );

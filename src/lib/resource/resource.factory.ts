@@ -182,7 +182,7 @@ function generate(options: ResourceOptions): Source {
     ])(context);
 }
 
-function addDeclarationToModule(options: ResourceOptions): Rule {
+export function addDeclarationToModule(options: ResourceOptions): Rule {
   return (tree: Tree) => {
     if (options.skipImport !== undefined && options.skipImport) {
       return tree;

@@ -24,6 +24,14 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Model.findById(id).exec();
   }
 
+  findByEmail(email: string) {
+    return this.<%= lowercased(singular(classify(name))) %>Model.findOne({ email }).select('+password').exec();
+  }
+
+  findByUsername(username: string) {
+    return this.<%= lowercased(singular(classify(name))) %>Model.findOne({ username }).select('+password').exec();
+  }
+
   update(id: string, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto) {
     return this.<%= lowercased(singular(classify(name))) %>Model.findByIdAndUpdate(id, update<%= singular(classify(name)) %>Dto, { returnDocument: 'after' }).exec();
   }

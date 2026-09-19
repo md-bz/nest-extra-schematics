@@ -22,6 +22,11 @@
       "description": "Create a Nest user resource (REST + MongoDB/Mongoose).",
       "schema": "./lib/user/schema.json",
       "aliases": ["u"]
+    },
+    "auth": {
+      "factory": "./lib/auth/auth.factory#main",
+      "description": "Create a Nest JWT auth module (Passport) wired to the user resource.",
+      "schema": "./lib/auth/schema.json"
     }
   }
 }

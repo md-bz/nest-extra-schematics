@@ -113,7 +113,8 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (
             path.endsWith('.controller.ts') ||
-            path.endsWith('.service.ts')
+            path.endsWith('.service.ts') ||
+            path.endsWith('.module.ts')
           ) {
             return isPasswordRoute;
           }
