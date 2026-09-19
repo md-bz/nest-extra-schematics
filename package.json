@@ -13,6 +13,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/md-bz/nest-extra-schematics"
+  },
   "scripts": {
     "postbuild": "npm run copy:collection && npm run copy:lib",
     "build": "rm -rf dist *.tsbuildinfo && tsc -b tsconfig.lib.json",
