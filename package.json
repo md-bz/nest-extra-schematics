@@ -1,6 +1,6 @@
 {
   "name": "nest-extra-schematics",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Nest schematics that extend the default schematics",
   "type": "module",
   "main": "dist/index.js",
