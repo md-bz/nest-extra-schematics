@@ -19,7 +19,7 @@ export class <%= classify(name) %>Service {
 <% } %>    if (!user || !(await argon2.verify(user.password, password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    return { userId: user.id, <%= identifier %>: user.<%= identifier %> };
+    return { userId: user.id.toString(), <%= identifier %>: user.<%= identifier %> };
   }
 
   async login(user: { userId: string; <%= identifier %>: string }) {

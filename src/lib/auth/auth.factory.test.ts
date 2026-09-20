@@ -81,7 +81,7 @@ describe('Auth Factory', () => {
     expect(service).toContain('findByEmail(email)');
     expect(service).toContain('argon2.verify(user.password, password)');
     expect(service).toContain("throw new UnauthorizedException('Invalid credentials')");
-    expect(service).toContain('return { userId: user.id, email: user.email }');
+    expect(service).toContain('return { userId: user.id.toString(), email: user.email }');
     expect(service).toContain('signAsync(payload)');
     expect(service).toContain('access_token');
   });
@@ -138,7 +138,7 @@ describe('Auth Factory', () => {
     const service = tree.readContent('/auth/auth.service.ts');
     expect(service).toContain('findByUsername(username)');
     expect(service).toContain(
-      'return { userId: user.id, username: user.username }',
+      'return { userId: user.id.toString(), username: user.username }',
     );
     expect(tree.readContent('/auth/strategies/jwt.strategy.ts')).toContain(
       'return { userId: payload.sub, username: payload.username }',
@@ -164,7 +164,7 @@ describe('Auth Factory', () => {
       'const user: { id: string; employeeId: string; password: string } | null = null;',
     );
     expect(service).toContain(
-      'return { userId: user.id, employeeId: user.employeeId }',
+      'return { userId: user.id.toString(), employeeId: user.employeeId }',
     );
     expect(tree.readContent('/auth/strategies/jwt.strategy.ts')).toContain(
       'return { userId: payload.sub, employeeId: payload.employeeId }',
@@ -193,10 +193,15 @@ describe('Auth Factory', () => {
     ).toContain('export class AuthenticationService {');
   });
 
-  it('should reject non-mongoose databases', async () => {
-    await expect(
-      runner.runSchematic('auth', { db: 'none', orm: 'none' }),
-    ).rejects.toThrow('Only "--db mongodb" with "--orm mongoose"');
+  it('should emit orm-agnostic user id handling', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('auth', {});
+    expect(tree.exists('/auth/auth.module.ts')).toBe(true);
+    expect(tree.readContent('/auth/auth.service.ts')).toContain(
+      'findByEmail(email)',
+    );
+    expect(tree.readContent('/auth/auth.service.ts')).toContain(
+      'user.id.toString()',
+    );
   });
 
   it('should reject unsupported methods', async () => {

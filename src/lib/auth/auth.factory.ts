@@ -91,21 +91,6 @@ function transform(options: AuthOptions): AuthOptions {
       'Only "--method jwt" is supported for now.',
     );
   }
-  // ponytail: same "none" escape hatch as resource/user; login verifies against
-  // the mongoose user (select('+password') + argon2), so only mongoose for now
-  target.db = target.db ?? 'mongodb';
-  target.orm = target.orm ?? 'mongoose';
-  if (target.db === 'none') {
-    target.db = undefined;
-  }
-  if (target.orm === 'none') {
-    target.orm = undefined;
-  }
-  if (target.db !== 'mongodb' || target.orm !== 'mongoose') {
-    throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" is supported for now.',
-    );
-  }
   target.usernameField = target.usernameField ?? 'email';
   if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(target.usernameField)) {
     throw new SchematicsException(
