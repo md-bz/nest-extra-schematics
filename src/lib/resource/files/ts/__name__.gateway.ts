@@ -18,7 +18,7 @@ export class <%= classify(name) %>Gateway {
   }
 
   @SubscribeMessage('findOne<%= singular(classify(name)) %>')
-  findOne(@MessageBody() id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  findOne(@MessageBody() id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.findOne(id);
   }
 
@@ -28,7 +28,7 @@ export class <%= classify(name) %>Gateway {
   }
 
   @SubscribeMessage('remove<%= singular(classify(name)) %>')
-  remove(@MessageBody() id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  remove(@MessageBody() id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.remove(id);
   }<% } %>
 }

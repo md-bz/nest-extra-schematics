@@ -8,7 +8,7 @@ export type <%= singular(classify(name)) %>Document = HydratedDocument<<%= singu
 <% } %>@Schema()
 export class <%= singular(classify(name)) %> {
 <% if (type === 'graphql-code-first') { %>  @Field(() => ID)
-  id: string;
+  id!: string;
 
   @Field({ nullable: true })
 <% } %>  @Prop()

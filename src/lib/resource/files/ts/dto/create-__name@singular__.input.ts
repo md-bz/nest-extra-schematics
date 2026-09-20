@@ -3,5 +3,5 @@
 @InputType()
 export class Create<%= singular(classify(name)) %>Input {
   @Field(() => Int, { description: 'Example field (placeholder)' })
-  exampleField: number;
+  exampleField!: number;
 }<% } else { %>export class Create<%= singular(classify(name)) %>Input {}<% } %>

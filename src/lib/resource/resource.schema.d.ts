@@ -58,7 +58,7 @@ export interface ResourceOptions {
   /**
    * The ORM used by the resource ("none" behaves like the option was not passed).
    */
-  orm?: 'mongoose' | 'none';
+  orm?: 'mongoose' | 'typeorm' | 'none';
   /**
    * Flag to indicate if a directory is created.
    */

@@ -46,6 +46,7 @@ export function main(options: ResourceOptions): Rule {
       chain([
         addMappedTypesDependencyIfApplies(options),
         addMongooseDependenciesIfApplies(options),
+        addTypeOrmDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
         mergeWith(generate(options)),
@@ -92,12 +93,17 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'mongoose' && target.db === undefined) {
     target.db = 'mongodb';
   }
+  if (target.orm === 'typeorm' && target.db === undefined) {
+    target.db = 'mongodb';
+  }
   if (
     (target.db !== undefined && target.db !== 'mongodb') ||
-    (target.orm !== undefined && target.orm !== 'mongoose')
+    (target.orm !== undefined &&
+      target.orm !== 'mongoose' &&
+      target.orm !== 'typeorm')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm" is supported for now.',
     );
   }
 
@@ -106,6 +112,7 @@ function transform(options: ResourceOptions): ResourceOptions {
 
 function generate(options: ResourceOptions): Source {
   const isMongoose = options.orm === 'mongoose';
+  const isTypeOrm = options.orm === 'typeorm';
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
       filter((path) => {
@@ -169,6 +176,7 @@ function generate(options: ResourceOptions): Source {
         ...strings,
         ...options,
         isMongoose,
+        isTypeOrm,
         lowercased: (name: string) => {
           const classifiedName = classify(name);
           return (
@@ -217,6 +225,32 @@ function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {
     try {
       let installed = false;
       for (const name of ['@nestjs/mongoose', 'mongoose']) {
+        if (!getPackageJsonDependency(host, name)) {
+          addPackageJsonDependency(host, {
+            type: NodeDependencyType.Default,
+            name,
+            version: '*',
+          });
+          installed = true;
+        }
+      }
+      if (installed) {
+        context.addTask(new NodePackageInstallTask());
+      }
+    } catch {
+      // ignore if "package.json" not found
+    }
+  };
+}
+
+function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (options.orm !== 'typeorm') {
+      return;
+    }
+    try {
+      let installed = false;
+      for (const name of ['@nestjs/typeorm', 'typeorm', 'mongodb']) {
         if (!getPackageJsonDependency(host, name)) {
           addPackageJsonDependency(host, {
             type: NodeDependencyType.Default,

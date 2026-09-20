@@ -482,7 +482,7 @@ export class UsersModule {}
 import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
-  id: number;
+  id!: number;
 }
 `);
     });
@@ -768,7 +768,7 @@ export class UsersModule {}
 import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
-  id: number;
+  id!: number;
 }
 `);
     });
@@ -1040,7 +1040,7 @@ export class UsersModule {}
 @ObjectType()
 export class User {
   @Field(() => Int, { description: 'Example field (placeholder)' })
-  exampleField: number;
+  exampleField!: number;
 }
 `);
     });
@@ -1052,7 +1052,7 @@ export class User {
 @InputType()
 export class CreateUserInput {
   @Field(() => Int, { description: 'Example field (placeholder)' })
-  exampleField: number;
+  exampleField!: number;
 }
 `,
       );
@@ -1066,7 +1066,7 @@ import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
 @InputType()
 export class UpdateUserInput extends PartialType(CreateUserInput) {
   @Field(() => Int)
-  id: number;
+  id!: number;
 }
 `);
     });
@@ -1288,7 +1288,7 @@ export class UsersModule {}
 import { PartialType } from '@nestjs/mapped-types';
 
 export class UpdateUserInput extends PartialType(CreateUserInput) {
-  id: number;
+  id!: number;
 }
 `);
     });
@@ -1596,6 +1596,95 @@ type Mutation {
       );
       expect(tree.readContent('/users/users.controller.ts')).not.toContain(
         '+id',
+      );
+    });
+  });
+
+  describe('[REST API - TypeORM]', () => {
+    it('should generate entity file instead of schema', async () => {
+      const options: ResourceOptions = {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'typeorm',
+      };
+      const tree = await runner.runSchematic('resource', options);
+      expect(tree.files).toEqual([
+        '/users/users.controller.spec.ts',
+        '/users/users.controller.ts',
+        '/users/users.module.ts',
+        '/users/users.service.spec.ts',
+        '/users/users.service.ts',
+        '/users/dto/create-user.dto.ts',
+        '/users/dto/update-user.dto.ts',
+        '/users/entities/user.entity.ts',
+      ]);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    });
+
+    it('should default to mongodb when only "orm" is given', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        orm: 'typeorm',
+      });
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    });
+
+    it('should wire TypeOrmModule, repository injection and string ids', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'typeorm',
+      });
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        '@ObjectIdColumn()',
+      );
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        'export class User {',
+      );
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        'TypeOrmModule.forFeature([User])',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        '@InjectRepository(User) private userRepository: MongoRepository<User>',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        'findOneBy({ id: new ObjectId(id) })',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        'findOneAndUpdate(',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        '{ $set: updateUserDto }',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        'findOneAndDelete({ _id: new ObjectId(id) })',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        "throw new NotFoundException(`User with ID ${id} not found`);",
+      );
+      expect(tree.readContent('/users/users.service.ts')).not.toContain(
+        '.update(',
+      );
+      expect(tree.readContent('/users/users.service.ts')).not.toContain(
+        '.delete(',
+      );
+      expect(tree.readContent('/users/users.controller.ts')).toContain(
+        'return this.usersService.findOne(id);',
+      );
+      expect(tree.readContent('/users/users.controller.ts')).not.toContain(
+        '+id',
+      );
+      const micro = await runner.runSchematic('resource', {
+        name: 'users',
+        type: 'microservice',
+        db: 'mongodb',
+        orm: 'typeorm',
+      });
+      expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
+        'id!: string;',
+      );
+      expect(micro.readContent('/users/users.service.ts')).toContain(
+        'const { id: _id, ...update }',
       );
     });
   });

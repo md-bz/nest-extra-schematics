@@ -23,17 +23,17 @@ export class <%= classify(name) %>Controller {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.<%= lowercased(name) %>Service.findOne(<% if (isMongoose) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.findOne(<% if ((isMongoose || isTypeOrm)) { %>id<% } else { %>+id<% } %>);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto) {
-    return this.<%= lowercased(name) %>Service.update(<% if (isMongoose) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
+    return this.<%= lowercased(name) %>Service.update(<% if ((isMongoose || isTypeOrm)) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.<%= lowercased(name) %>Service.remove(<% if (isMongoose) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.remove(<% if ((isMongoose || isTypeOrm)) { %>id<% } else { %>+id<% } %>);
   }<% } else if (type === 'microservice' && crud) { %>
 
   @MessagePattern('create<%= singular(classify(name)) %>')
@@ -47,7 +47,7 @@ export class <%= classify(name) %>Controller {
   }
 
   @MessagePattern('findOne<%= singular(classify(name)) %>')
-  findOne(@Payload() id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  findOne(@Payload() id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.findOne(id);
   }
 
@@ -57,7 +57,7 @@ export class <%= classify(name) %>Controller {
   }
 
   @MessagePattern('remove<%= singular(classify(name)) %>')
-  remove(@Payload() id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  remove(@Payload() id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.remove(id);
   }<% } %>
 }

@@ -1,4 +1,4 @@
-import { Resolver<% if (crud && type === 'graphql-schema-first') { %>, Query, Mutation, Args<% } else if (crud && type === 'graphql-code-first' && isMongoose) { %>, Query, Mutation, Args, ID<% } else if (crud && type === 'graphql-code-first') { %>, Query, Mutation, Args, Int<% } %> } from '@nestjs/graphql';
+import { Resolver<% if (crud && type === 'graphql-schema-first') { %>, Query, Mutation, Args<% } else if (crud && type === 'graphql-code-first' && (isMongoose || isTypeOrm)) { %>, Query, Mutation, Args, ID<% } else if (crud && type === 'graphql-code-first') { %>, Query, Mutation, Args, Int<% } %> } from '@nestjs/graphql';
 import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '.js' : '' %>';<% if (crud && type === 'graphql-code-first' && isMongoose) { %>
 import { <%= singular(classify(name)) %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';<% } else if (crud && type === 'graphql-code-first') { %>
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% } %><% if (crud) { %>
@@ -70,7 +70,7 @@ export class <%= classify(name) %>Resolver {
   }
 
   @Query('<%= lowercased(singular(classify(name))) %>')
-  findOne(@Args('id') id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  findOne(@Args('id') id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.findOne(id);
   }
 
@@ -80,7 +80,7 @@ export class <%= classify(name) %>Resolver {
   }
 
   @Mutation('remove<%= singular(classify(name)) %>')
-  remove(@Args('id') id: <% if (isMongoose) { %>string<% } else { %>number<% } %>) {
+  remove(@Args('id') id: <% if ((isMongoose || isTypeOrm)) { %>string<% } else { %>number<% } %>) {
     return this.<%= lowercased(name) %>Service.remove(id);
   }<% } %>
 }
