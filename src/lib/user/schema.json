@@ -109,13 +109,14 @@
       "type": "string",
       "description": "The ORM used by the resource.",
       "default": "mongoose",
-      "enum": ["none", "mongoose"],
+      "enum": ["none", "mongoose", "typeorm"],
       "x-prompt": {
         "message": "Which ORM do you want to use?",
         "type": "list",
         "items": [
           { "value": "none", "label": "None" },
-          { "value": "mongoose", "label": "Mongoose" }
+          { "value": "mongoose", "label": "Mongoose" },
+          { "value": "typeorm", "label": "TypeORM" }
         ]
       }
     },

@@ -88,6 +88,53 @@ describe('User Factory', () => {
     expect(service).toContain("select('+password')");
   });
 
+  it('should generate a typeorm user resource with entity instead of schema', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'typeorm',
+    });
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain('@ObjectIdColumn()');
+    expect(entity).toContain('id!: ObjectId;');
+    expect(entity).toContain('username!: string;');
+    expect(entity).toContain('@Column({ select: false })');
+    expect(entity).toContain('password!: string;');
+    expect(entity).toContain('@BeforeInsert()');
+    expect(entity).toContain('argon2.hash(this.password)');
+    const module = tree.readContent('/users/users.module.ts');
+    expect(module).toContain('TypeOrmModule.forFeature([User])');
+    expect(module).toContain('exports: [UsersService]');
+    expect(module).not.toContain('MongooseModule');
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain(
+      '@InjectRepository(User) private userRepository: MongoRepository<User>',
+    );
+    expect(service).toContain('findOneBy({ id: new ObjectId(id) })');
+    expect(service).toContain(
+      'this.userRepository.save(this.userRepository.create(createUserDto))',
+    );
+    expect(service).toContain('findByEmail(email: string)');
+    expect(service).toContain('password: true');
+    expect(service).toContain('argon2.hash(changePasswordDto.password)');
+    expect(service).toContain('findOneAndUpdate(');
+    expect(service).toContain('{ $set: updateUserDto }');
+    expect(service).toContain(
+      'findOneAndDelete({ _id: new ObjectId(id) })',
+    );
+    expect(service).toContain(
+      "throw new NotFoundException(`User with ID ${id} not found`);",
+    );
+    expect(service).not.toContain('findByIdAndUpdate');
+    expect(tree.readContent('/users/dto/update-user.dto.ts')).toContain(
+      'OmitType(',
+    );
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain("@Patch(':id/password')");
+    expect(controller).toContain('changePassword');
+  });
+
   it('should not add a password route off the rest mongoose path', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       type: 'microservice',
@@ -126,6 +173,9 @@ describe('User Factory', () => {
     });
     expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
     expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    expect(tree.readContent('/users/entities/user.entity.ts')).not.toContain(
+      'ObjectIdColumn',
+    );
     expect(tree.exists('/users/dto/change-password.dto.ts')).toBe(false);
     expect(tree.readContent('/users/dto/update-user.dto.ts')).not.toContain(
       'OmitType',

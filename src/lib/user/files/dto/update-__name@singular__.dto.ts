@@ -5,5 +5,5 @@ export class Update<%= singular(classify(name)) %>Dto extends OmitType(
   PartialType(Create<%= singular(classify(name)) %>Dto),
   ['password'],
 ) {<% if ((type === 'microservice' || type === 'ws') && crud) { %>
-  id!: <% if (isMongoose) { %>string<% } else { %>number<% } %>;
+  id!: <% if (isMongoose || isTypeOrm) { %>string<% } else { %>number<% } %>;
 <% }%>}

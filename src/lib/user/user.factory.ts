@@ -43,7 +43,9 @@ export function main(options: UserOptions): Rule {
   return chain([
     schematic('resource', effective),
     overwriteUserFiles(effective),
-    effective.orm === 'mongoose' ? addUserDependencies() : noop(),
+    effective.orm === 'mongoose' || effective.orm === 'typeorm'
+      ? addUserDependencies()
+      : noop(),
   ]);
 }
 
@@ -51,6 +53,7 @@ export interface UserOutputPaths {
   dir: string;
   singular: string;
   schemaPath: string;
+  entityPath: string;
   createDtoPath: string;
   updateDtoPath: string;
 }
@@ -82,6 +85,7 @@ export function resolveOutputPaths(
     dir,
     singular,
     schemaPath: `${dir}/schemas/${singular}.schema.ts`,
+    entityPath: `${dir}/entities/${singular}.entity.ts`,
     createDtoPath: `${dir}/dto/create-${singular}.dto.ts`,
     updateDtoPath: `${dir}/dto/update-${singular}.dto.ts`,
   };
@@ -91,14 +95,19 @@ function overwriteUserFiles(options: UserOptions): Rule {
   return (tree: Tree, context: SchematicContext) => {
     const output = resolveOutputPaths(tree, options);
     const hasSchema = tree.exists(output.schemaPath);
+    const hasEntity = tree.exists(output.entityPath);
     const hasDto = tree.exists(output.createDtoPath);
-    // ponytail: password route needs the mongoose service (doc.save() fires the hash hook);
-    // password must never flow through findByIdAndUpdate, so update DTO drops it on every mongoose transport
+    // ponytail: password route needs a hashing data path (mongoose doc.save()
+    // hook or typeorm save()); password must never flow through
+    // findByIdAndUpdate/.update(), so the update DTO drops it on both
     const isMongoose = options.orm === 'mongoose';
+    const isTypeOrm = options.orm === 'typeorm';
     const isPasswordRoute =
-      !!options.crud && isMongoose && (options.type ?? 'rest') === 'rest';
+      !!options.crud &&
+      (isMongoose || isTypeOrm) &&
+      (options.type ?? 'rest') === 'rest';
 
-    if (!hasSchema && !hasDto) {
+    if (!hasSchema && !hasEntity && !hasDto) {
       return tree;
     }
 
@@ -107,6 +116,9 @@ function overwriteUserFiles(options: UserOptions): Rule {
         filter((path) => {
           if (path.includes('/schemas/')) {
             return hasSchema;
+          }
+          if (path.includes('/entities/')) {
+            return hasEntity && isTypeOrm;
           }
           if (path.endsWith('change-password.dto.ts')) {
             return isPasswordRoute;
@@ -120,7 +132,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (path.endsWith('.dto.ts')) {
             if (path.includes('/update-')) {
-              return hasDto && isMongoose;
+              return hasDto && (isMongoose || isTypeOrm);
             }
             return hasDto;
           }
@@ -130,6 +142,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           ...strings,
           ...options,
           isMongoose: options.orm === 'mongoose',
+          isTypeOrm: options.orm === 'typeorm',
           isEsm: isEsmProject(tree),
           lowercased: (name: string) => {
             const classifiedName = classify(name);
