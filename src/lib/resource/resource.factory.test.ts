@@ -186,7 +186,12 @@ export class UsersModule {}
 
     it('should generate "CreateUserDto" class', () => {
       expect(tree.readContent('/users/dto/create-user.dto.ts')).toEqual(
-        `export class CreateUserDto {}
+        `import { IsString } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  exampleField!: string;
+}
 `,
       );
     });
@@ -471,7 +476,12 @@ export class UsersModule {}
 
     it('should generate "CreateUserDto" class', () => {
       expect(tree.readContent('/users/dto/create-user.dto.ts')).toEqual(
-        `export class CreateUserDto {}
+        `import { IsString } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  exampleField!: string;
+}
 `,
       );
     });
@@ -757,7 +767,12 @@ export class UsersModule {}
 
     it('should generate "CreateUserDto" class', () => {
       expect(tree.readContent('/users/dto/create-user.dto.ts')).toEqual(
-        `export class CreateUserDto {}
+        `import { IsString } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  exampleField!: string;
+}
 `,
       );
     });
@@ -1660,7 +1675,7 @@ type Mutation {
         'findOneAndDelete({ _id: new ObjectId(id) })',
       );
       expect(tree.readContent('/users/users.service.ts')).toContain(
-        "throw new NotFoundException(`User with ID ${id} not found`);",
+        'throw new NotFoundException(`User with ID ${id} not found`);',
       );
       expect(tree.readContent('/users/users.service.ts')).not.toContain(
         '.update(',

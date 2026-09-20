@@ -45,6 +45,7 @@ export function main(options: ResourceOptions): Rule {
     return branchAndMerge(
       chain([
         addMappedTypesDependencyIfApplies(options),
+        addClassValidatorDependencyIfApplies(options),
         addMongooseDependenciesIfApplies(options),
         addTypeOrmDependenciesIfApplies(options),
         mergeSourceRoot(options),
@@ -214,6 +215,30 @@ export function addDeclarationToModule(options: ResourceOptions): Rule {
       } as DeclarationOptions),
     );
     return tree;
+  };
+}
+
+function addClassValidatorDependencyIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (
+      options.type === 'graphql-code-first' ||
+      options.type === 'graphql-schema-first' ||
+      !options.crud
+    ) {
+      return;
+    }
+    try {
+      if (!getPackageJsonDependency(host, 'class-validator')) {
+        addPackageJsonDependency(host, {
+          type: NodeDependencyType.Default,
+          name: 'class-validator',
+          version: '*',
+        });
+        context.addTask(new NodePackageInstallTask());
+      }
+    } catch {
+      // ignore if "package.json" not found
+    }
   };
 }
 
