@@ -1,4 +1,4 @@
-import { join, Path, strings } from '@angular-devkit/core';
+import { join, normalize, Path, strings } from '@angular-devkit/core';
 import { classify } from '@angular-devkit/core/src/utils/strings';
 import {
   apply,
@@ -19,6 +19,17 @@ import {
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks/index.js';
 import pluralize from 'pluralize';
 import {
+  ArrayLiteralExpression,
+  CallExpression,
+  createSourceFile,
+  Node,
+  ObjectLiteralExpression,
+  PropertyAssignment,
+  SourceFile,
+  SyntaxKind,
+} from 'typescript';
+import { ScriptTarget } from 'typescript';
+import {
   DeclarationOptions,
   ModuleDeclarator,
   ModuleFinder,
@@ -30,6 +41,7 @@ import {
 } from '../../utils/dependencies.utils.js';
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
+import { PathSolver } from '../../utils/path.solver.js';
 import { Location, NameParser } from '../../utils/name.parser.js';
 import {
   isEsmProject,
@@ -50,6 +62,7 @@ export function main(options: ResourceOptions): Rule {
         addTypeOrmDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
+        addEntityToAppModuleIfApplies(options),
         mergeWith(generate(options)),
         options.format === true ? formatFiles() : noop(),
       ]),
@@ -240,6 +253,101 @@ function addClassValidatorDependencyIfApplies(options: ResourceOptions): Rule {
       // ignore if "package.json" not found
     }
   };
+}
+
+function addEntityToAppModuleIfApplies(options: ResourceOptions): Rule {
+  return (tree: Tree) => {
+    if (options.orm !== 'typeorm' || !options.crud || !options.module) {
+      return tree;
+    }
+
+    const content = tree.read(options.module)?.toString();
+    if (!content) return tree;
+
+    const source = createSourceFile(
+      'app.module.ts',
+      content,
+      ScriptTarget.ES2017,
+      true,
+    );
+
+    const entities = findForRootEntities(source);
+    if (!entities) return tree;
+
+    const entity = classify(pluralize.singular(options.name));
+    const entityFile = pluralize.singular(options.name);
+
+    if (entities.elements.some((el) => el.getText(source) === entity)) {
+      return tree;
+    }
+
+    const position = entities.getEnd() - 1;
+    const value = entities.elements.length ? `, ${entity}` : entity;
+
+    let updated = content.slice(0, position) + value + content.slice(position);
+
+    let relativePath = new PathSolver().relative(
+      options.module,
+      normalize(`/${options.path}/entities/${entityFile}.entity`),
+    );
+    if (isEsmProject(tree)) {
+      relativePath += '.js';
+    }
+
+    const importLine = `import { ${entity} } from '${relativePath}';`;
+
+    if (!updated.includes(importLine)) {
+      const lines = updated.split('\n');
+      const reversed = Array.from(lines).reverse();
+      const lastImport = reversed.find((line) => line.match(/\} from ('|")/));
+      lines.splice(
+        lastImport ? lines.indexOf(lastImport) + 1 : 0,
+        0,
+        importLine,
+      );
+      updated = lines.join('\n');
+    }
+
+    tree.overwrite(options.module, updated);
+
+    return tree;
+  };
+}
+
+function findForRootEntities(
+  source: SourceFile,
+): ArrayLiteralExpression | undefined {
+  let result: ArrayLiteralExpression | undefined;
+
+  const visit = (node: Node) => {
+    if (result) return;
+
+    if (node.kind === SyntaxKind.CallExpression) {
+      const call = node as CallExpression;
+      if (
+        call.expression.getText(source) === 'TypeOrmModule.forRoot' &&
+        call.arguments[0]?.kind === SyntaxKind.ObjectLiteralExpression
+      ) {
+        const config = call.arguments[0] as ObjectLiteralExpression;
+
+        const property = config.properties.find(
+          (p) =>
+            p.kind === SyntaxKind.PropertyAssignment &&
+            (p as PropertyAssignment).name.getText(source) === 'entities',
+        ) as PropertyAssignment | undefined;
+
+        if (property?.initializer.kind === SyntaxKind.ArrayLiteralExpression) {
+          result = property.initializer as ArrayLiteralExpression;
+          return;
+        }
+      }
+    }
+
+    node.forEachChild(visit);
+  };
+
+  visit(source);
+  return result;
 }
 
 function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {

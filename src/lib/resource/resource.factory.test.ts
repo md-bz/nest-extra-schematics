@@ -2,6 +2,7 @@ import {
   SchematicTestRunner,
   UnitTestTree,
 } from '@angular-devkit/schematics/testing';
+import { Tree } from '@angular-devkit/schematics';
 import * as path from 'path';
 import type { ApplicationOptions } from '../application/application.schema.js';
 import type { ResourceOptions } from './resource.schema.js';
@@ -1701,6 +1702,114 @@ type Mutation {
       expect(micro.readContent('/users/users.service.ts')).toContain(
         'const { id: _id, ...update }',
       );
+    });
+
+    it('should add the entity to entities of an existing forRoot', async () => {
+      const base = Tree.empty();
+      base.create(
+        '/src/app.module.ts',
+        `import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/entities/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mongodb',
+      database: 'test',
+      entities: [User],
+    }),
+    UsersModule,
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+`,
+      );
+      const tree = await runner.runSchematic(
+        'resource',
+        {
+          name: 'orders',
+          db: 'mongodb',
+          orm: 'typeorm',
+          path: 'src',
+        },
+        base,
+      );
+      const content = tree.readContent('/src/app.module.ts');
+      expect(content).toContain('entities: [User, Order]');
+      expect(content).toContain(
+        `import { Order } from './orders/entities/order.entity';`,
+      );
+    });
+
+    it('should leave the app module alone without an entities array', async () => {
+      const base = Tree.empty();
+      base.create(
+        '/src/app.module.ts',
+        `import { Module } from '@nestjs/common';
+
+@Module({
+  imports: [],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+`,
+      );
+      const tree = await runner.runSchematic(
+        'resource',
+        {
+          name: 'orders',
+          db: 'mongodb',
+          orm: 'typeorm',
+          path: 'src',
+        },
+        base,
+      );
+      const content = tree.readContent('/src/app.module.ts');
+      expect(content).toContain('OrdersModule');
+      expect(content).not.toContain('orders/entities');
+      expect(content).not.toContain('entities');
+    });
+
+    it('should not duplicate an entity already in entities', async () => {
+      const base = Tree.empty();
+      base.create(
+        '/src/app.module.ts',
+        `import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Order } from './orders/entities/order.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mongodb',
+      database: 'test',
+      entities: [Order],
+    }),
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+`,
+      );
+      const tree = await runner.runSchematic(
+        'resource',
+        {
+          name: 'orders',
+          db: 'mongodb',
+          orm: 'typeorm',
+          path: 'src',
+        },
+        base,
+      );
+      const content = tree.readContent('/src/app.module.ts');
+      expect(content).toContain('entities: [Order]');
+      expect(content).not.toContain('[Order, Order]');
+      expect(content.match(/import { Order } from /g)!.length).toBe(1);
     });
   });
 });
