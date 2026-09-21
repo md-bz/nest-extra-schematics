@@ -1,14 +1,15 @@
-<% if (type === 'graphql-code-first') { %>import { ObjectType, Field, ID } from '@nestjs/graphql';
+<% if (type === 'graphql-code-first') { %>import { ObjectType, Field, <% if (db === 'mongodb') { %>ID<% } else { %>Int<% } %> } from '@nestjs/graphql';
 <% } %>import * as argon2 from 'argon2';
-import { ObjectId } from 'mongodb';
-import { BeforeInsert, Column, Entity, ObjectIdColumn } from 'typeorm';
+<% if (db === 'mongodb') { %>import { ObjectId } from 'mongodb';
+<% } %>import { BeforeInsert, Column, Entity, <% if (db === 'mongodb') { %>ObjectIdColumn<% } else { %>PrimaryGeneratedColumn<% } %> } from 'typeorm';
 
 <% if (type === 'graphql-code-first') { %>@ObjectType()
 <% } %>@Entity()
 export class <%= singular(classify(name)) %> {
-<% if (type === 'graphql-code-first') { %>  @Field(() => ID)
-<% } %>  @ObjectIdColumn()
-  id!: ObjectId;
+<% if (type === 'graphql-code-first') { %>  @Field(() => <% if (db === 'mongodb') { %>ID<% } else { %>Int<% } %>)
+<% } %>  @<% if (db === 'mongodb') { %>ObjectIdColumn()
+  id!: ObjectId;<% } else { %>PrimaryGeneratedColumn()
+  id!: number;<% } %>
 
 <% if (type === 'graphql-code-first') { %>  @Field()
 <% } %>  @Column({ unique: true })

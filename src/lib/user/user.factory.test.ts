@@ -135,6 +135,38 @@ describe('User Factory', () => {
     expect(controller).toContain('changePassword');
   });
 
+  it('should generate a sqlite user resource with numeric ids', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'sqlite',
+      orm: 'typeorm',
+    });
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain('@PrimaryGeneratedColumn()');
+    expect(entity).toContain('id!: number;');
+    expect(entity).toContain('@BeforeInsert()');
+    expect(entity).toContain('argon2.hash(this.password)');
+    expect(entity).not.toContain('mongodb');
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain(
+      '@InjectRepository(User) private userRepository: Repository<User>',
+    );
+    expect(service).toContain('findOneBy({ id })');
+    expect(service).toContain(
+      'this.userRepository.save(this.userRepository.create(createUserDto))',
+    );
+    expect(service).toContain('.preload({ id, ...updateUserDto })');
+    expect(service).toContain('async findOne(id: number)');
+    expect(service).toContain('async changePassword(id: number,');
+    expect(service).toContain('argon2.hash(changePasswordDto.password)');
+    expect(service).not.toContain('ObjectId');
+    expect(service).not.toContain('MongoRepository');
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain('findOne(+id)');
+    expect(controller).toContain('changePassword(+id,');
+  });
+
   it('should not add a password route off the rest mongoose path', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       type: 'microservice',

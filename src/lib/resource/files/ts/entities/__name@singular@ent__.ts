@@ -1,4 +1,13 @@
-<% if (isTypeOrm) { %>import { ObjectId } from 'mongodb';
+<% if (isTypeOrm && db !== 'mongodb') { %>import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class <%= singular(classify(name)) %> {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column()
+  exampleField!: string;
+}<% } else if (isTypeOrm) { %>import { ObjectId } from 'mongodb';
 import { Column, Entity, ObjectIdColumn } from 'typeorm';
 
 @Entity()

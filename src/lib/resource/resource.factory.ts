@@ -110,14 +110,20 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'typeorm' && target.db === undefined) {
     target.db = 'mongodb';
   }
+  if (target.db === 'sqlite' && target.orm === undefined) {
+    target.orm = 'typeorm';
+  }
   if (
-    (target.db !== undefined && target.db !== 'mongodb') ||
+    (target.db !== undefined &&
+      target.db !== 'mongodb' &&
+      target.db !== 'sqlite') ||
     (target.orm !== undefined &&
       target.orm !== 'mongoose' &&
-      target.orm !== 'typeorm')
+      target.orm !== 'typeorm') ||
+    (target.db === 'sqlite' && target.orm === 'mongoose')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite" with "--orm typeorm" is supported for now.',
     );
   }
 
@@ -383,7 +389,12 @@ function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
     }
     try {
       let installed = false;
-      for (const name of ['@nestjs/typeorm', 'typeorm', 'mongodb']) {
+      // ponytail: mongodb needs its driver package, SQL flavors ship their own (better-sqlite3 here)
+      const names =
+        options.db === 'mongodb'
+          ? ['@nestjs/typeorm', 'typeorm', 'mongodb']
+          : ['@nestjs/typeorm', 'typeorm', 'better-sqlite3'];
+      for (const name of names) {
         if (!getPackageJsonDependency(host, name)) {
           addPackageJsonDependency(host, {
             type: NodeDependencyType.Default,

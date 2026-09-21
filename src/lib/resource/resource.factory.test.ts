@@ -1812,4 +1812,109 @@ export class AppModule {}
       expect(content.match(/import { Order } from /g)!.length).toBe(1);
     });
   });
+
+  describe('[REST API - TypeORM + SQLite]', () => {
+    it('should generate entity file instead of schema', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'sqlite',
+        orm: 'typeorm',
+      });
+      expect(tree.files).toEqual([
+        '/users/users.controller.spec.ts',
+        '/users/users.controller.ts',
+        '/users/users.module.ts',
+        '/users/users.service.spec.ts',
+        '/users/users.service.ts',
+        '/users/dto/create-user.dto.ts',
+        '/users/dto/update-user.dto.ts',
+        '/users/entities/user.entity.ts',
+      ]);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    });
+
+    it('should default to typeorm when only "db" is given', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'sqlite',
+      });
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        '@PrimaryGeneratedColumn()',
+      );
+    });
+
+    it('should reject sqlite with mongoose', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'sqlite',
+          orm: 'mongoose',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should wire Repository, numeric ids and a numeric entity', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'sqlite',
+        orm: 'typeorm',
+      });
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        '@PrimaryGeneratedColumn()',
+      );
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        'id!: number;',
+      );
+      expect(tree.readContent('/users/entities/user.entity.ts')).not.toContain(
+        'mongodb',
+      );
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        'TypeOrmModule.forFeature([User])',
+      );
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain(
+        '@InjectRepository(User) private userRepository: Repository<User>',
+      );
+      expect(service).toContain('findOneBy({ id })');
+      expect(service).toContain('.preload({');
+      expect(service).toContain('async findOne(id: number)');
+      expect(service).toContain('async update(id: number,');
+      expect(service).toContain('async remove(id: number)');
+      expect(service).toContain(
+        'throw new NotFoundException(`User with ID ${id} not found`);',
+      );
+      expect(service).not.toContain('ObjectId');
+      expect(service).not.toContain('MongoRepository');
+      expect(service).not.toContain('mongodb');
+      const controller = tree.readContent('/users/users.controller.ts');
+      expect(controller).toContain('findOne(+id)');
+      expect(controller).toContain('update(+id,');
+      expect(controller).toContain('remove(+id)');
+      const micro = await runner.runSchematic('resource', {
+        name: 'users',
+        type: 'microservice',
+        db: 'sqlite',
+        orm: 'typeorm',
+      });
+      expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
+        'id!: number;',
+      );
+    });
+
+    it('should add better-sqlite3 instead of the mongodb driver', async () => {
+      const base = Tree.empty();
+      base.create('package.json', JSON.stringify({ name: 'app' }));
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'sqlite', orm: 'typeorm' },
+        base,
+      );
+      const pkg = JSON.parse(tree.readContent('package.json'));
+      expect(pkg.dependencies['better-sqlite3']).toBeDefined();
+      expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
+      expect(pkg.dependencies['typeorm']).toBeDefined();
+      expect(pkg.dependencies['mongodb']).toBeUndefined();
+    });
+  });
 });
