@@ -26,7 +26,7 @@ $ nest g -c nest-extra-schematics schematic schematic
 
 ### Resource
 
-extended from nest schematic, has database (currently only mongodb) and ORM (currently only mongoose) integration.
+extended from nest schematic, has database (mongodb, sqlite, postgres, mysql/mariadb) and ORM (mongoose, typeorm) integration.
 
 **usage:**
 
