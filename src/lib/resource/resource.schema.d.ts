@@ -52,9 +52,10 @@ export interface ResourceOptions {
    */
   crud?: boolean;
   /**
-   * The database used by the resource ("none" behaves like the option was not passed).
+   * The database used by the resource ("mysql" covers both MySQL and MariaDB;
+   * "none" behaves like the option was not passed).
    */
-  db?: 'mongodb' | 'sqlite' | 'postgres' | 'none';
+  db?: 'mongodb' | 'sqlite' | 'postgres' | 'mysql' | 'none';
   /**
    * The ORM used by the resource ("none" behaves like the option was not passed).
    */

@@ -1963,4 +1963,50 @@ export class AppModule {}
       expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
     });
   });
+
+  describe('[REST API - TypeORM + MySQL/MariaDB]', () => {
+    it('should default to typeorm and wire the SQL repository path', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mysql',
+      });
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+        '@PrimaryGeneratedColumn()',
+      );
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain(
+        '@InjectRepository(User) private userRepository: Repository<User>',
+      );
+      expect(service).not.toContain('MongoRepository');
+      expect(service).not.toContain('ObjectId');
+    });
+
+    it('should reject mysql with mongoose', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'mysql',
+          orm: 'mongoose',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should add mysql2 (MySQL and MariaDB driver) instead of the mongodb driver', async () => {
+      const base = Tree.empty();
+      base.create('package.json', JSON.stringify({ name: 'app' }));
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'mysql' },
+        base,
+      );
+      const pkg = JSON.parse(tree.readContent('package.json'));
+      expect(pkg.dependencies['mysql2']).toBeDefined();
+      expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
+      expect(pkg.dependencies['typeorm']).toBeDefined();
+      expect(pkg.dependencies['mongodb']).toBeUndefined();
+      expect(pkg.dependencies['pg']).toBeUndefined();
+    });
+  });
 });

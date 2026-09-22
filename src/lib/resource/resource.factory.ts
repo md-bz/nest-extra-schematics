@@ -110,25 +110,21 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'typeorm' && target.db === undefined) {
     target.db = 'mongodb';
   }
-  if (
-    (target.db === 'sqlite' || target.db === 'postgres') &&
-    target.orm === undefined
-  ) {
+  const sqlDbs = ['sqlite', 'postgres', 'mysql'];
+  if (target.db !== undefined && sqlDbs.includes(target.db) && target.orm === undefined) {
     target.orm = 'typeorm';
   }
   if (
     (target.db !== undefined &&
       target.db !== 'mongodb' &&
-      target.db !== 'sqlite' &&
-      target.db !== 'postgres') ||
+      !sqlDbs.includes(target.db)) ||
     (target.orm !== undefined &&
       target.orm !== 'mongoose' &&
       target.orm !== 'typeorm') ||
-    ((target.db === 'sqlite' || target.db === 'postgres') &&
-      target.orm === 'mongoose')
+    (target.db !== undefined && sqlDbs.includes(target.db) && target.orm === 'mongoose')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite"/"--db postgres" with "--orm typeorm" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm" is supported for now.',
     );
   }
 
@@ -394,13 +390,15 @@ function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
     }
     try {
       let installed = false;
-      // ponytail: each db needs its own driver package alongside typeorm
-      const names =
-        options.db === 'mongodb'
-          ? ['@nestjs/typeorm', 'typeorm', 'mongodb']
-          : options.db === 'postgres'
-            ? ['@nestjs/typeorm', 'typeorm', 'pg']
-            : ['@nestjs/typeorm', 'typeorm', 'better-sqlite3'];
+      // ponytail: each db needs its own driver package alongside typeorm;
+      // transform guarantees db is set (and in this map) when orm is typeorm
+      const driverByDb: Record<string, string> = {
+        mongodb: 'mongodb',
+        postgres: 'pg',
+        mysql: 'mysql2',
+        sqlite: 'better-sqlite3',
+      };
+      const names = ['@nestjs/typeorm', 'typeorm', driverByDb[options.db!]];
       for (const name of names) {
         if (!getPackageJsonDependency(host, name)) {
           addPackageJsonDependency(host, {
