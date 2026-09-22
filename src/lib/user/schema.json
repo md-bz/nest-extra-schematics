@@ -95,14 +95,15 @@
       "type": "string",
       "description": "The database used by the resource.",
       "default": "mongodb",
-      "enum": ["none", "mongodb", "sqlite"],
+      "enum": ["none", "mongodb", "sqlite", "postgres"],
       "x-prompt": {
         "message": "Which database do you want to use?",
         "type": "list",
         "items": [
           { "value": "none", "label": "None" },
           { "value": "mongodb", "label": "MongoDB" },
-          { "value": "sqlite", "label": "SQLite" }
+          { "value": "sqlite", "label": "SQLite" },
+          { "value": "postgres", "label": "PostgreSQL" }
         ]
       }
     },

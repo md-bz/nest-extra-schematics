@@ -54,7 +54,7 @@ export interface ResourceOptions {
   /**
    * The database used by the resource ("none" behaves like the option was not passed).
    */
-  db?: 'mongodb' | 'sqlite' | 'none';
+  db?: 'mongodb' | 'sqlite' | 'postgres' | 'none';
   /**
    * The ORM used by the resource ("none" behaves like the option was not passed).
    */
