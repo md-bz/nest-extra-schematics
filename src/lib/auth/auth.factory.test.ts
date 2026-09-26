@@ -5,6 +5,7 @@ import {
 } from '@angular-devkit/schematics/testing';
 import * as path from 'path';
 import { addAuthDependencies, resolveOutputPaths } from './auth.factory.js';
+import type { AuthOptions } from './auth.schema.js';
 
 describe('Auth Factory', () => {
   const runner: SchematicTestRunner = new SchematicTestRunner(
@@ -241,5 +242,85 @@ describe('Auth Factory', () => {
     }
     expect(pkg.devDependencies['@types/passport-local']).toBeDefined();
     expect(pkg.devDependencies['@types/passport-jwt']).toBeDefined();
+  });
+
+  it('should generate a code login flow without the local strategy', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('auth', {
+      method: 'code',
+    });
+    expect(tree.files).toEqual([
+      '/auth/auth.controller.spec.ts',
+      '/auth/auth.controller.ts',
+      '/auth/auth.module.ts',
+      '/auth/auth.service.spec.ts',
+      '/auth/auth.service.ts',
+      '/auth/dto/login.dto.ts',
+      '/auth/dto/request-code.dto.ts',
+      '/auth/guards/jwt-auth.guard.ts',
+      '/auth/strategies/jwt.strategy.ts',
+    ]);
+    const service = tree.readContent('/auth/auth.service.ts');
+    expect(service).toContain("export const CODE_SENDER = 'CODE_SENDER'");
+    expect(service).toContain("export const CODE_STORE = 'CODE_STORE'");
+    expect(service).toContain('sendCode(to: string, code: string)');
+    expect(service).toContain('get(key: string): Promise<CodeEntry | null>');
+    expect(service).toContain('del(key: string): Promise<void>');
+    expect(service).toContain('attempts: number');
+    expect(service).toContain("get('CODE_TTL_MINUTES') ?? 10");
+    expect(service).toContain('async requestCode(');
+    expect(service).toContain('async loginWithCode(');
+    expect(service).toContain('randomInt(0, 1_000_000)');
+    expect(service).toContain('this.codeStore.set(');
+    expect(service).toContain('this.codeStore.get(');
+    expect(service).toContain('this.codeStore.del(');
+    expect(service).toContain('entry.attempts >= 3');
+    expect(service).toContain('Invalid or expired code');
+    expect(service).not.toContain('expiresAt');
+    expect(service).not.toContain('argon2');
+    expect(service).not.toContain('validateUser');
+    expect(service).not.toContain('ponytail');
+    expect(service).not.toContain('new Map');
+    const controller = tree.readContent('/auth/auth.controller.ts');
+    expect(controller).toContain("@Post('request-code')");
+    expect(controller).toContain('loginWithCode(');
+    expect(controller).toContain('RequestCodeDto');
+    expect(controller).not.toContain('LocalAuthGuard');
+    const module = tree.readContent('/auth/auth.module.ts');
+    expect(module).toContain('providers: [AuthService, JwtStrategy]');
+    expect(module).toContain('register CODE_SENDER and CODE_STORE');
+    expect(module).not.toContain('LocalStrategy');
+    const dto = tree.readContent('/auth/dto/login.dto.ts');
+    expect(dto).toContain('code!: string;');
+    expect(dto).toContain('@Length(6, 6)');
+    expect(dto).not.toContain('password');
+    expect(tree.readContent('/auth/dto/request-code.dto.ts')).toContain(
+      'email!: string;',
+    );
+    const spec = tree.readContent('/auth/auth.service.spec.ts');
+    expect(spec).toContain(
+      '{ provide: CODE_SENDER, useValue: { sendCode: async () => {} } }',
+    );
+    expect(spec).toContain(
+      '{ provide: CODE_STORE, useValue: { set: async () => {}, get: async () => null, del: async () => {} } }',
+    );
+    expect(spec).not.toContain('ponytail');
+  });
+
+  it('should skip passport-local and argon2 for code login', () => {
+    const host = new HostTree();
+    host.create(
+      '/package.json',
+      JSON.stringify({ name: 'app', dependencies: {} }),
+    );
+    const tree = new UnitTestTree(host);
+    addAuthDependencies({ method: 'code' } as AuthOptions)(
+      tree,
+      { addTask: () => {} } as unknown as SchematicContext,
+    );
+    const pkg = JSON.parse(tree.readContent('/package.json').toString());
+    expect(pkg.dependencies['passport-local']).toBeUndefined();
+    expect(pkg.dependencies['argon2']).toBeUndefined();
+    expect(pkg.dependencies['passport-jwt']).toBeDefined();
+    expect(pkg.dependencies['class-validator']).toBeDefined();
   });
 });

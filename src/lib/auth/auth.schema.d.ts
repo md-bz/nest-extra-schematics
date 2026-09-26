@@ -18,11 +18,12 @@ export interface AuthOptions {
    */
   language?: string;
   /**
-   * The authentication method ("jwt" for now).
+   * The authentication method ("jwt" for password login, "code" for a login
+   * code your email/sms module delivers via the CODE_SENDER token).
    */
-  method?: 'jwt';
+  method?: 'jwt' | 'code';
   /**
-   * The user field login accepts alongside the password ("email" by default;
+   * The user field that identifies the account at login ("email" by default;
    * anything custom leaves the user lookup for you to wire up).
    */
   usernameField?: string;

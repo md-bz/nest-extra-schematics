@@ -40,13 +40,13 @@ export function main(options: AuthOptions): Rule {
   return (tree: Tree, context: SchematicContext) => {
     (options as any).isEsm = isEsmProject(tree);
     return branchAndMerge(
-      chain([
-        addAuthDependencies(),
-        mergeSourceRoot(options),
-        addDeclarationToModule(options),
-        mergeWith(generate(options)),
-        options.format === true ? formatFiles() : noop(),
-      ]),
+    chain([
+      addAuthDependencies(options),
+      mergeSourceRoot(options),
+      addDeclarationToModule(options),
+      mergeWith(generate(options)),
+      options.format === true ? formatFiles() : noop(),
+    ]),
     )(tree, context);
   };
 }
@@ -86,9 +86,9 @@ function transform(options: AuthOptions): AuthOptions {
   );
 
   target.method = target.method ?? 'jwt';
-  if (target.method !== 'jwt') {
+  if (target.method !== 'jwt' && target.method !== 'code') {
     throw new SchematicsException(
-      'Only "--method jwt" is supported for now.',
+      'Only "--method jwt" or "--method code" is supported for now.',
     );
   }
   target.usernameField = target.usernameField ?? 'email';
@@ -107,8 +107,21 @@ function transform(options: AuthOptions): AuthOptions {
 }
 
 function generate(options: AuthOptions): Source {
+  const isCode = options.method === 'code';
   return (context: SchematicContext) =>
     apply(url('./files'), [
+      filter((path) => {
+        if (
+          path.includes('local.strategy') ||
+          path.includes('local-auth.guard')
+        ) {
+          return !isCode;
+        }
+        if (path.includes('request-code.dto')) {
+          return isCode;
+        }
+        return true;
+      }),
       options.spec
         ? noop()
         : filter((path) => {
@@ -118,6 +131,7 @@ function generate(options: AuthOptions): Source {
       template({
         ...strings,
         ...options,
+        isCode,
         identifier: options.usernameField ?? 'email',
         // ponytail: only email/username have known user finders; custom
         // identifiers emit a lookup stub for the developer to wire up
@@ -137,7 +151,9 @@ function generate(options: AuthOptions): Source {
     ])(context);
 }
 
-export function addAuthDependencies(): Rule {
+export function addAuthDependencies(options?: AuthOptions): Rule {
+  // ponytail: code login has no password — skip the local/passport-local/argon2 stack
+  const isCode = options?.method === 'code';
   return (host: Tree, context: SchematicContext) => {
     try {
       let installed = false;
@@ -149,13 +165,17 @@ export function addAuthDependencies(): Rule {
         { type: NodeDependencyType.Default, name: '@nestjs/jwt' },
         { type: NodeDependencyType.Default, name: '@nestjs/config' },
         { type: NodeDependencyType.Default, name: 'passport' },
-        { type: NodeDependencyType.Default, name: 'passport-local' },
         { type: NodeDependencyType.Default, name: 'passport-jwt' },
-        { type: NodeDependencyType.Default, name: 'argon2' },
         { type: NodeDependencyType.Default, name: 'class-validator' },
-        { type: NodeDependencyType.Dev, name: '@types/passport-local' },
         { type: NodeDependencyType.Dev, name: '@types/passport-jwt' },
       ];
+      if (!isCode) {
+        dependencies.push(
+          { type: NodeDependencyType.Default, name: 'passport-local' },
+          { type: NodeDependencyType.Default, name: 'argon2' },
+          { type: NodeDependencyType.Dev, name: '@types/passport-local' },
+        );
+      }
       for (const { type, name } of dependencies) {
         if (!getPackageJsonDependency(host, name)) {
           addPackageJsonDependency(host, {

@@ -18,18 +18,24 @@
       "type": "string",
       "description": "The authentication method.",
       "default": "jwt",
-      "enum": ["jwt"],
+      "enum": ["jwt", "code"],
       "x-prompt": {
         "message": "Which authentication method do you want to use?",
         "type": "list",
-        "items": [{ "value": "jwt", "label": "JWT (Passport + access token)" }]
+        "items": [
+          { "value": "jwt", "label": "JWT password (Passport + access token)" },
+          {
+            "value": "code",
+            "label": "Login code (sent by your email/SMS module)"
+          }
+        ]
       }
     },
     "usernameField": {
       "type": "string",
-      "description": "The user field login accepts alongside the password.",
+      "description": "The user field that identifies the account at login.",
       "default": "email",
-      "x-prompt": "Which field should login accept alongside the password (email by default)?"
+      "x-prompt": "Which user field identifies the account at login? (email by default)"
     },
     "path": {
       "type": "string",

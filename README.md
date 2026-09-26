@@ -44,6 +44,16 @@ extended from resource, has some basic properties for user (username, email, fir
 $ nest g -c nest-extra-schematics u users
 ```
 
+### Auth
+
+JWT auth (Passport) wired to the user resource. Two methods: `jwt` (password login) or `code` (a login code your own email/sms module delivers — it must provide `CODE_SENDER` with `sendCode(to, code)` and a `CODE_STORE`). Login identifies the user by `email` by default. Codes allow 3 attempts and expire after `CODE_TTL_MINUTES` (default 10).
+
+**usage:**
+
+```bash
+$ nest g -c nest-extra-schematics auth
+```
+
 ## License
 
 Nest is [MIT licensed](LICENSE).

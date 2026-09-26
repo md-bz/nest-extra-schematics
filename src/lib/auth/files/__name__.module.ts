@@ -6,15 +6,18 @@ import { UsersModule } from '../users/users.module<%= isEsm ? '.js' : '' %>';
 import { <%= classify(name) %>Controller } from './<%= name %>.controller<%= isEsm ? '.js' : '' %>';
 import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '.js' : '' %>';
 import { JwtStrategy } from './strategies/jwt.strategy<%= isEsm ? '.js' : '' %>';
-import { LocalStrategy } from './strategies/local.strategy<%= isEsm ? '.js' : '' %>';
-
+<% if (!isCode) { %>import { LocalStrategy } from './strategies/local.strategy<%= isEsm ? '.js' : '' %>';
+<% } %>
 // The app must boot ConfigModule (forRoot, ideally global) and set JWT_SECRET
 // and optionally JWT_EXPIRES_IN, otherwise the JWT setup below throws on startup.
+<% if (isCode) { %>// It must also register CODE_SENDER and CODE_STORE (see the service).
+<% } %>
 @Module({
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.registerAsync({
+<% if (isCode) { %>    ConfigModule,
+<% } %>    JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -28,6 +31,6 @@ import { LocalStrategy } from './strategies/local.strategy<%= isEsm ? '.js' : ''
     }),
   ],
   controllers: [<%= classify(name) %>Controller],
-  providers: [<%= classify(name) %>Service, LocalStrategy, JwtStrategy],
+  providers: [<%= classify(name) %>Service<% if (!isCode) { %>, LocalStrategy<% } %>, JwtStrategy],
 })
 export class <%= classify(name) %>Module {}

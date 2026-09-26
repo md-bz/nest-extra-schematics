@@ -25,7 +25,7 @@
     },
     "auth": {
       "factory": "./lib/auth/auth.factory#main",
-      "description": "Create a Nest JWT auth module (Passport) wired to the user resource.",
+      "description": "Create a Nest auth module (JWT password or email/SMS login code) wired to the user resource.",
       "schema": "./lib/auth/schema.json"
     }
   }
