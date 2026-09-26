@@ -41,6 +41,7 @@ import {
 } from '../../utils/dependencies.utils.js';
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
+import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { PathSolver } from '../../utils/path.solver.js';
 import { Location, NameParser } from '../../utils/name.parser.js';
 import {
@@ -198,6 +199,7 @@ function generate(options: ResourceOptions): Source {
         ...options,
         isMongoose,
         isTypeOrm,
+        ...entityTypeOptions(options.name, options.orm),
         lowercased: (name: string) => {
           const classifiedName = classify(name);
           return (

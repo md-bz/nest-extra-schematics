@@ -107,27 +107,27 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
+  create(@Body() createUserDto: CreateUserDto): string {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  findAll() {
+  findAll(): string {
     return this.usersService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): string {
     return this.usersService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): string {
     return this.usersService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string): string {
     return this.usersService.remove(+id);
   }
 }
@@ -142,23 +142,23 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
+  create(createUserDto: CreateUserDto): string {
     return 'This action adds a new user';
   }
 
-  findAll() {
+  findAll(): string {
     return \`This action returns all users\`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return \`This action returns a #\${id} user\`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number, updateUserDto: UpdateUserDto): string {
     return \`This action updates a #\${id} user\`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return \`This action removes a #\${id} user\`;
   }
 }
@@ -397,27 +397,27 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @MessagePattern('createUser')
-  create(@Payload() createUserDto: CreateUserDto) {
+  create(@Payload() createUserDto: CreateUserDto): string {
     return this.usersService.create(createUserDto);
   }
 
   @MessagePattern('findAllUsers')
-  findAll() {
+  findAll(): string {
     return this.usersService.findAll();
   }
 
   @MessagePattern('findOneUser')
-  findOne(@Payload() id: number) {
+  findOne(@Payload() id: number): string {
     return this.usersService.findOne(id);
   }
 
   @MessagePattern('updateUser')
-  update(@Payload() updateUserDto: UpdateUserDto) {
+  update(@Payload() updateUserDto: UpdateUserDto): string {
     return this.usersService.update(updateUserDto.id, updateUserDto);
   }
 
   @MessagePattern('removeUser')
-  remove(@Payload() id: number) {
+  remove(@Payload() id: number): string {
     return this.usersService.remove(id);
   }
 }
@@ -432,23 +432,23 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
+  create(createUserDto: CreateUserDto): string {
     return 'This action adds a new user';
   }
 
-  findAll() {
+  findAll(): string {
     return \`This action returns all users\`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return \`This action returns a #\${id} user\`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number, updateUserDto: UpdateUserDto): string {
     return \`This action updates a #\${id} user\`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return \`This action removes a #\${id} user\`;
   }
 }
@@ -724,23 +724,23 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
+  create(createUserDto: CreateUserDto): string {
     return 'This action adds a new user';
   }
 
-  findAll() {
+  findAll(): string {
     return \`This action returns all users\`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return \`This action returns a #\${id} user\`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number, updateUserDto: UpdateUserDto): string {
     return \`This action updates a #\${id} user\`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return \`This action removes a #\${id} user\`;
   }
 }
@@ -1013,23 +1013,23 @@ import { UpdateUserInput } from './dto/update-user.input';
 
 @Injectable()
 export class UsersService {
-  create(createUserInput: CreateUserInput) {
+  create(createUserInput: CreateUserInput): string {
     return 'This action adds a new user';
   }
 
-  findAll() {
+  findAll(): string {
     return \`This action returns all users\`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return \`This action returns a #\${id} user\`;
   }
 
-  update(id: number, updateUserInput: UpdateUserInput) {
+  update(id: number, updateUserInput: UpdateUserInput): string {
     return \`This action updates a #\${id} user\`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return \`This action removes a #\${id} user\`;
   }
 }
@@ -1249,23 +1249,23 @@ import { UpdateUserInput } from './dto/update-user.input';
 
 @Injectable()
 export class UsersService {
-  create(createUserInput: CreateUserInput) {
+  create(createUserInput: CreateUserInput): string {
     return 'This action adds a new user';
   }
 
-  findAll() {
+  findAll(): string {
     return \`This action returns all users\`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return \`This action returns a #\${id} user\`;
   }
 
-  update(id: number, updateUserInput: UpdateUserInput) {
+  update(id: number, updateUserInput: UpdateUserInput): string {
     return \`This action updates a #\${id} user\`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return \`This action removes a #\${id} user\`;
   }
 }

@@ -28,6 +28,7 @@ import {
   isEsmProject,
   isInRootDirectory,
 } from '../../utils/source-root.helpers.js';
+import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { DEFAULT_PATH_NAME } from '../defaults.js';
 import type { UserOptions } from './user.schema.js';
 
@@ -144,6 +145,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           isMongoose: options.orm === 'mongoose',
           isTypeOrm: options.orm === 'typeorm',
           isEsm: isEsmProject(tree),
+          ...entityTypeOptions(options.name, options.orm),
           lowercased: (name: string) => {
             const classifiedName = classify(name);
             return (

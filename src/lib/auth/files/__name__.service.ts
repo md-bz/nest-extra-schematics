@@ -37,7 +37,7 @@ export class <%= classify(name) %>Service {
     @Inject(CODE_STORE) private readonly codeStore: CodeStore,<% } %>
   ) {}
 <% if (isCode) { %>
-  async requestCode(<%= identifier %>: string) {
+  async requestCode(<%= identifier %>: string): Promise<{ sent: boolean }> {
     const ttlSeconds =
       Number(this.configService.get('CODE_TTL_MINUTES') ?? 10) * 60;
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -46,7 +46,7 @@ export class <%= classify(name) %>Service {
     return { sent: true };
   }
 
-  async loginWithCode(<%= identifier %>: string, code: string) {
+  async loginWithCode(<%= identifier %>: string, code: string): Promise<{ access_token: string }> {
     const entry = await this.codeStore.get(<%= identifier %>);
     if (!entry) {
       throw new UnauthorizedException('Invalid or expired code');
@@ -71,7 +71,7 @@ export class <%= classify(name) %>Service {
     }
     return this.login({ userId: user.id.toString(), <%= identifier %>: user.<%= identifier %> });
   }
-<% } else { %>  async validateUser(<%= identifier %>: string, password: string) {
+<% } else { %>  async validateUser(<%= identifier %>: string, password: string): Promise<{ userId: string; <%= identifier %>: string }> {
 <% if (hasUserFinder) { %>    const user = await this.usersService.<%= identifier === 'email' ? 'findByEmail' : 'findByUsername' %>(<%= identifier %>);
 <% } else { %>    // "<%= identifier %>" is custom: no lookup is plugged in — fetch the user
     // (with password hash) yourself, e.g.:
@@ -83,7 +83,7 @@ export class <%= classify(name) %>Service {
     return { userId: user.id.toString(), <%= identifier %>: user.<%= identifier %> };
   }
 <% } %>
-  async login(user: { userId: string; <%= identifier %>: string }) {
+  async login(user: { userId: string; <%= identifier %>: string }): Promise<{ access_token: string }> {
     const payload = { sub: user.userId, <%= identifier %>: user.<%= identifier %> };
     return { access_token: await this.jwtService.signAsync(payload) };
   }

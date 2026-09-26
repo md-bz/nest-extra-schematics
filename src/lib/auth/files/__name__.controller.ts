@@ -10,24 +10,24 @@ export class <%= classify(name) %>Controller {
   constructor(private readonly <%= lowercased(name) %>Service: <%= classify(name) %>Service) {}
 <% if (isCode) { %>
   @Post('request-code')
-  requestCode(@Body() requestCodeDto: RequestCodeDto) {
+  requestCode(@Body() requestCodeDto: RequestCodeDto): Promise<{ sent: boolean }> {
     return this.<%= lowercased(name) %>Service.requestCode(requestCodeDto.<%= identifier %>);
   }
 
   @Post('login')
-  login(@Body() loginDto: LoginDto) {
+  login(@Body() loginDto: LoginDto): Promise<{ access_token: string }> {
     return this.<%= lowercased(name) %>Service.loginWithCode(loginDto.<%= identifier %>, loginDto.code);
   }
 <% } else { %>
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Request() req: Record<string, any>) {
+  login(@Request() req: Record<string, any>): Promise<{ access_token: string }> {
     return this.<%= lowercased(name) %>Service.login(req.user);
   }
 <% } %>
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Request() req: Record<string, any>) {
+  getProfile(@Request() req: Record<string, any>): { userId: string; <%= identifier %>: string } {
     return req.user;
   }
 }
