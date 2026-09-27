@@ -240,6 +240,8 @@ describe('User Factory', () => {
     expect(service).toContain('argon2.hash(changePasswordDto.password)');
     expect(service).toContain('async findByEmail(email: string): Promise<User | null>');
     expect(service).not.toContain('this.userRepository');
+    expect(service).toContain('select(publicUserColumns)');
+    expect(service).not.toContain('password: users.password');
     const module = tree.readContent('/users/users.module.ts');
     expect(module).not.toContain('forFeature');
     expect(module).not.toContain('MongooseModule');

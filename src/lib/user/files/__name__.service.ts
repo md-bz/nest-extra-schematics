@@ -8,6 +8,15 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
 
+const publicUserColumns = {
+  id: <%= plural(lowercased(name)) %>.id,
+  username: <%= plural(lowercased(name)) %>.username,
+  email: <%= plural(lowercased(name)) %>.email,
+  firstName: <%= plural(lowercased(name)) %>.firstName,
+  lastName: <%= plural(lowercased(name)) %>.lastName,
+  phoneNumber: <%= plural(lowercased(name)) %>.phoneNumber,
+};
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectDrizzle() private readonly db: <%= drizzleDbType %>) {}
@@ -26,16 +35,17 @@ export class <%= classify(name) %>Service {
     return created<%= singular(classify(name)) %>;
 <% } %>  }
 
-  findAll(): <%= returnListType %> {
-    return this.db.select().from(<%= plural(lowercased(name)) %>);
+  async findAll(): <%= returnListType %> {
+    const rows = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>);
+    return rows as <%= entityType %>[];
   }
 
   async findOne(id: number): <%= returnOneType %> {
-    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
     if (!<%= lowercased(singular(classify(name))) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
     }
-    return <%= lowercased(singular(classify(name))) %>;
+    return <%= lowercased(singular(classify(name))) %> as <%= entityType %>;
   }
 
   async findByEmail(email: string): <%= returnNullableType %> {
@@ -49,12 +59,12 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
     if (!<%= lowercased(singular(classify(name))) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
     }
     await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id));
-    return { ...<%= lowercased(singular(classify(name))) %>, ...update<%= singular(classify(name)) %>Dto };
+    return { ...<%= lowercased(singular(classify(name))) %>, ...update<%= singular(classify(name)) %>Dto } as <%= entityType %>;
   }
 
   async changePassword(id: number, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {
@@ -75,12 +85,12 @@ export class <%= classify(name) %>Service {
   }
 
   async remove(id: number): <%= returnOneType %> {
-    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
     if (!<%= lowercased(singular(classify(name))) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
     }
     await this.db.delete(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
-    return <%= lowercased(singular(classify(name))) %>;
+    return <%= lowercased(singular(classify(name))) %> as <%= entityType %>;
   }
 }
 <% } else if (isTypeOrm && db !== 'mongodb') { %>import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
