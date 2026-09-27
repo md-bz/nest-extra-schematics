@@ -4,6 +4,7 @@ import {
   apply,
   chain,
   filter,
+  forEach,
   MergeStrategy,
   mergeWith,
   move,
@@ -30,6 +31,11 @@ import {
 } from '../../utils/source-root.helpers.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
+import {
+  matchServiceBranch,
+  serviceBranch,
+  stripServiceBranch,
+} from '../../utils/service-branch.js';
 import { DEFAULT_PATH_NAME } from '../defaults.js';
 import type { UserOptions } from './user.schema.js';
 
@@ -107,6 +113,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
     const isMongoose = options.orm === 'mongoose';
     const isTypeOrm = options.orm === 'typeorm';
     const isDrizzle = options.orm === 'drizzle';
+    const branch = serviceBranch(options);
     const isPasswordRoute =
       !!options.crud &&
       (isMongoose || isTypeOrm || isDrizzle) &&
@@ -119,6 +126,10 @@ function overwriteUserFiles(options: UserOptions): Rule {
     return mergeWith(
       apply(url('./files'), [
         filter((path) => {
+          const branchPath = matchServiceBranch(path);
+          if (branchPath) {
+            return isPasswordRoute && branchPath === branch;
+          }
           if (path.includes('/schemas/')) {
             return hasSchema;
           }
@@ -130,7 +141,6 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (
             path.endsWith('.controller.ts') ||
-            path.endsWith('.service.ts') ||
             path.endsWith('.module.ts')
           ) {
             return isPasswordRoute;
@@ -161,6 +171,10 @@ function overwriteUserFiles(options: UserOptions): Rule {
           singular: (name: string) => pluralize.singular(name) as string,
           plural: (name: string) => pluralize.plural(name) as string,
         }),
+        forEach((file) => ({
+          content: file.content,
+          path: normalize(stripServiceBranch(file.path)),
+        })),
         move(output.dir as Path),
       ]),
       MergeStrategy.Overwrite,

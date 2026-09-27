@@ -5,6 +5,7 @@ import {
   branchAndMerge,
   chain,
   filter,
+  forEach,
   mergeWith,
   move,
   noop,
@@ -43,6 +44,12 @@ import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
+import {
+  isServiceTemplate,
+  matchServiceBranch,
+  serviceBranch,
+  stripServiceBranch,
+} from '../../utils/service-branch.js';
 import { PathSolver } from '../../utils/path.solver.js';
 import { Location, NameParser } from '../../utils/name.parser.js';
 import {
@@ -149,9 +156,17 @@ function generate(options: ResourceOptions): Source {
   const isMongoose = options.orm === 'mongoose';
   const isTypeOrm = options.orm === 'typeorm';
   const isDrizzle = options.orm === 'drizzle';
+  const branch = serviceBranch(options);
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
       filter((path) => {
+        const branchPath = matchServiceBranch(path);
+        if (branchPath) {
+          return branchPath === branch;
+        }
+        if (isServiceTemplate(path)) {
+          return branch === null;
+        }
         if (path.includes('/schemas/')) {
           return isMongoose && !!options.crud;
         }
@@ -226,6 +241,10 @@ function generate(options: ResourceOptions): Source {
         plural: (name: string) => pluralize.plural(name) as string,
         ent: (name: string) => name + '.entity',
       }),
+      forEach((file) => ({
+        content: file.content,
+        path: normalize(stripServiceBranch(file.path)),
+      })),
       move(options.path!),
     ])(context);
 }
