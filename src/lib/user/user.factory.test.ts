@@ -220,6 +220,49 @@ describe('User Factory', () => {
     });
     expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
   });
+
+  it('should generate a drizzle user without hooks', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      orm: 'drizzle',
+    });
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain("export const users = pgTable('users', {");
+    expect(entity).toContain("password: text('password').notNull()");
+    expect(entity).not.toContain('@BeforeInsert()');
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain(
+      '@InjectDrizzle() private readonly db: NodePgDatabase',
+    );
+    expect(service).toContain('password: await argon2.hash(createUserDto.password)');
+    expect(service).toContain('async changePassword(id: number,');
+    expect(service).toContain('argon2.hash(changePasswordDto.password)');
+    expect(service).toContain('async findByEmail(email: string): Promise<User | null>');
+    expect(service).not.toContain('this.userRepository');
+    const module = tree.readContent('/users/users.module.ts');
+    expect(module).not.toContain('forFeature');
+    expect(module).not.toContain('MongooseModule');
+    expect(tree.readContent('/users/dto/update-user.dto.ts')).toContain(
+      "['password']",
+    );
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain('findOne(+id)');
+    expect(controller).toContain('changePassword(+id,');
+  });
+
+  it('should use $returningId for a mysql drizzle user', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      orm: 'drizzle',
+      db: 'mysql',
+    });
+    expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+      "mysqlTable('users', {",
+    );
+    expect(tree.readContent('/users/users.service.ts')).toContain(
+      '$returningId()',
+    );
+  });
 });
 
 describe('resolveOutputPaths', () => {

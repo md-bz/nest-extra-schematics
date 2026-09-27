@@ -3,7 +3,7 @@ import pluralize from 'pluralize';
 
 export function entityTypeOptions(name: string, orm?: string) {
   const isMongoose = orm === 'mongoose';
-  const hasOrm = orm === 'mongoose' || orm === 'typeorm';
+  const hasOrm = orm === 'mongoose' || orm === 'typeorm' || orm === 'drizzle';
   const entity = pluralize.singular(classify(name));
   const entityType = isMongoose ? `${entity}Document` : entity;
   const file = pluralize.singular(name);

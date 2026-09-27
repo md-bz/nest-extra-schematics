@@ -29,6 +29,7 @@ import {
   isInRootDirectory,
 } from '../../utils/source-root.helpers.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
+import { drizzleOptions } from '../../utils/drizzle.options.js';
 import { DEFAULT_PATH_NAME } from '../defaults.js';
 import type { UserOptions } from './user.schema.js';
 
@@ -38,13 +39,15 @@ export function main(options: UserOptions): Rule {
     name: options.name ?? 'users',
     type: options.type ?? 'rest',
     crud: options.crud ?? true,
-    db: options.db ?? 'mongodb',
+    db: options.db ?? (options.orm === 'drizzle' ? 'postgres' : 'mongodb'),
     orm: options.orm ?? 'mongoose',
   };
   return chain([
     schematic('resource', effective),
     overwriteUserFiles(effective),
-    effective.orm === 'mongoose' || effective.orm === 'typeorm'
+    effective.orm === 'mongoose' ||
+    effective.orm === 'typeorm' ||
+    effective.orm === 'drizzle'
       ? addUserDependencies()
       : noop(),
   ]);
@@ -103,9 +106,10 @@ function overwriteUserFiles(options: UserOptions): Rule {
     // findByIdAndUpdate/.update(), so the update DTO drops it on both
     const isMongoose = options.orm === 'mongoose';
     const isTypeOrm = options.orm === 'typeorm';
+    const isDrizzle = options.orm === 'drizzle';
     const isPasswordRoute =
       !!options.crud &&
-      (isMongoose || isTypeOrm) &&
+      (isMongoose || isTypeOrm || isDrizzle) &&
       (options.type ?? 'rest') === 'rest';
 
     if (!hasSchema && !hasEntity && !hasDto) {
@@ -119,7 +123,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
             return hasSchema;
           }
           if (path.includes('/entities/')) {
-            return hasEntity && isTypeOrm;
+            return hasEntity && (isTypeOrm || isDrizzle);
           }
           if (path.endsWith('change-password.dto.ts')) {
             return isPasswordRoute;
@@ -133,7 +137,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (path.endsWith('.dto.ts')) {
             if (path.includes('/update-')) {
-              return hasDto && (isMongoose || isTypeOrm);
+              return hasDto && (isMongoose || isTypeOrm || isDrizzle);
             }
             return hasDto;
           }
@@ -144,8 +148,10 @@ function overwriteUserFiles(options: UserOptions): Rule {
           ...options,
           isMongoose: options.orm === 'mongoose',
           isTypeOrm: options.orm === 'typeorm',
+          isDrizzle,
           isEsm: isEsmProject(tree),
           ...entityTypeOptions(options.name, options.orm),
+          ...drizzleOptions(options.db),
           lowercased: (name: string) => {
             const classifiedName = classify(name);
             return (
@@ -153,6 +159,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
             );
           },
           singular: (name: string) => pluralize.singular(name) as string,
+          plural: (name: string) => pluralize.plural(name) as string,
         }),
         move(output.dir as Path),
       ]),

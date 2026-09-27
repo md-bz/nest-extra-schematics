@@ -42,6 +42,7 @@ import {
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
+import { drizzleOptions } from '../../utils/drizzle.options.js';
 import { PathSolver } from '../../utils/path.solver.js';
 import { Location, NameParser } from '../../utils/name.parser.js';
 import {
@@ -61,6 +62,7 @@ export function main(options: ResourceOptions): Rule {
         addClassValidatorDependencyIfApplies(options),
         addMongooseDependenciesIfApplies(options),
         addTypeOrmDependenciesIfApplies(options),
+        addDrizzleDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
         addEntityToAppModuleIfApplies(options),
@@ -111,8 +113,15 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'typeorm' && target.db === undefined) {
     target.db = 'mongodb';
   }
+  if (target.orm === 'drizzle' && target.db === undefined) {
+    target.db = 'postgres';
+  }
   const sqlDbs = ['sqlite', 'postgres', 'mysql'];
-  if (target.db !== undefined && sqlDbs.includes(target.db) && target.orm === undefined) {
+  if (
+    target.db !== undefined &&
+    sqlDbs.includes(target.db) &&
+    target.orm === undefined
+  ) {
     target.orm = 'typeorm';
   }
   if (
@@ -121,11 +130,15 @@ function transform(options: ResourceOptions): ResourceOptions {
       !sqlDbs.includes(target.db)) ||
     (target.orm !== undefined &&
       target.orm !== 'mongoose' &&
-      target.orm !== 'typeorm') ||
-    (target.db !== undefined && sqlDbs.includes(target.db) && target.orm === 'mongoose')
+      target.orm !== 'typeorm' &&
+      target.orm !== 'drizzle') ||
+    (target.db !== undefined &&
+      sqlDbs.includes(target.db) &&
+      target.orm === 'mongoose') ||
+    (target.db === 'mongodb' && target.orm === 'drizzle')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm" or "--orm drizzle" is supported for now.',
     );
   }
 
@@ -135,6 +148,7 @@ function transform(options: ResourceOptions): ResourceOptions {
 function generate(options: ResourceOptions): Source {
   const isMongoose = options.orm === 'mongoose';
   const isTypeOrm = options.orm === 'typeorm';
+  const isDrizzle = options.orm === 'drizzle';
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
       filter((path) => {
@@ -199,7 +213,9 @@ function generate(options: ResourceOptions): Source {
         ...options,
         isMongoose,
         isTypeOrm,
+        isDrizzle,
         ...entityTypeOptions(options.name, options.orm),
+        ...drizzleOptions(options.db),
         lowercased: (name: string) => {
           const classifiedName = classify(name);
           return (
@@ -207,6 +223,7 @@ function generate(options: ResourceOptions): Source {
           );
         },
         singular: (name: string) => pluralize.singular(name) as string,
+        plural: (name: string) => pluralize.plural(name) as string,
         ent: (name: string) => name + '.entity',
       }),
       move(options.path!),
@@ -407,6 +424,44 @@ function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
             type: NodeDependencyType.Default,
             name,
             version: '*',
+          });
+          installed = true;
+        }
+      }
+      if (installed) {
+        context.addTask(new NodePackageInstallTask());
+      }
+    } catch {
+      // ignore if "package.json" not found
+    }
+  };
+}
+
+function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (options.orm !== 'drizzle') {
+      return;
+    }
+    try {
+      let installed = false;
+      // ponytail: each sql db needs its own driver package alongside drizzle;
+      // transform guarantees db is set (and in this map) when orm is drizzle
+      const driverByDb: Record<string, string> = {
+        postgres: 'pg',
+        sqlite: 'better-sqlite3',
+        mysql: 'mysql2',
+      };
+      // ponytail: drizzle v1 ships under the rc tag until it hits latest
+      const deps = [
+        { name: '@nestjs/drizzle', version: '*' },
+        { name: 'drizzle-orm', version: 'rc' },
+        { name: driverByDb[options.db!], version: '*' },
+      ];
+      for (const dep of deps) {
+        if (!getPackageJsonDependency(host, dep.name)) {
+          addPackageJsonDependency(host, {
+            type: NodeDependencyType.Default,
+            ...dep,
           });
           installed = true;
         }

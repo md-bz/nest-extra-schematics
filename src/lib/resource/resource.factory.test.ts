@@ -2009,4 +2009,128 @@ export class AppModule {}
       expect(pkg.dependencies['pg']).toBeUndefined();
     });
   });
+
+  describe('[REST API - Drizzle]', () => {
+    it('should generate a drizzle table and default to postgres', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        orm: 'drizzle',
+      });
+      expect(tree.files).toEqual([
+        '/users/users.controller.spec.ts',
+        '/users/users.controller.ts',
+        '/users/users.module.ts',
+        '/users/users.service.spec.ts',
+        '/users/users.service.ts',
+        '/users/dto/create-user.dto.ts',
+        '/users/dto/update-user.dto.ts',
+        '/users/entities/user.entity.ts',
+      ]);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain("export const users = pgTable('users', {");
+      expect(entity).toContain(
+        "integer('id').primaryKey().generatedAlwaysAsIdentity()",
+      );
+      expect(entity).toContain('export type User = typeof users.$inferSelect;');
+      expect(entity).not.toContain('export class User');
+    });
+
+    it('should reject mongodb with drizzle', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'mongodb',
+          orm: 'drizzle',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should wire @InjectDrizzle, numeric ids and the query builder', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'drizzle',
+      });
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain(
+        '@InjectDrizzle() private readonly db: NodePgDatabase',
+      );
+      expect(service).toContain("from 'drizzle-orm/node-postgres'");
+      expect(service).toContain(
+        "import { users, type User } from './entities/user.entity'",
+      );
+      expect(service).toContain('.returning()');
+      expect(service).toContain(
+        'throw new NotFoundException(`User with ID ${id} not found`);',
+      );
+      expect(service).not.toContain('Repository');
+      expect(tree.readContent('/users/users.module.ts')).not.toContain(
+        'forFeature',
+      );
+      const controller = tree.readContent('/users/users.controller.ts');
+      expect(controller).toContain('findOne(+id)');
+      expect(controller).toContain('Promise<User[]>');
+      const micro = await runner.runSchematic('resource', {
+        name: 'users',
+        type: 'microservice',
+        db: 'postgres',
+        orm: 'drizzle',
+      });
+      expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
+        'id!: number;',
+      );
+      expect(micro.readContent('/users/users.controller.ts')).toContain(
+        'findOne(@Payload() id: number)',
+      );
+    });
+
+    it('should use the sqlite dialect', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'sqlite',
+        orm: 'drizzle',
+      });
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain("sqliteTable('users', {");
+      expect(entity).toContain("integer('id').primaryKey({ autoIncrement: true })");
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        'BetterSQLite3Database',
+      );
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        "from 'drizzle-orm/better-sqlite3'",
+      );
+    });
+
+    it('should use $returningId on mysql', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mysql',
+        orm: 'drizzle',
+      });
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain("mysqlTable('users', {");
+      expect(entity).toContain("int('id').autoincrement().primaryKey()");
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain('MySql2Database');
+      expect(service).toContain('$returningId()');
+      expect(service).not.toContain('.returning()');
+    });
+
+    it('should add drizzle dependencies with the driver for the db', async () => {
+      const base = Tree.empty();
+      base.create('package.json', JSON.stringify({ name: 'app' }));
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'postgres', orm: 'drizzle' },
+        base,
+      );
+      const pkg = JSON.parse(tree.readContent('package.json'));
+      expect(pkg.dependencies['@nestjs/drizzle']).toBeDefined();
+      expect(pkg.dependencies['drizzle-orm']).toBe('rc');
+      expect(pkg.dependencies['pg']).toBeDefined();
+      expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
+      expect(pkg.dependencies['mongoose']).toBeUndefined();
+    });
+  });
 });
