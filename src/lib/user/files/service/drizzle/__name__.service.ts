@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { eq } from 'drizzle-orm';
 import type { <%= drizzleDbType %> } from 'drizzle-orm/<%= drizzleEntry %>';
@@ -17,23 +17,36 @@ const publicUserColumns = {
   phoneNumber: <%= plural(lowercased(name)) %>.phoneNumber,
 };
 
+function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: string; driverError?: { code?: string }; cause?: { code?: string } };
+  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
+  return code === '23505' || code === 'ER_DUP_ENTRY' || String(code).startsWith('SQLITE_CONSTRAINT');
+}
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectDrizzle() private readonly db: <%= drizzleDbType %>) {}
 
   async create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-<% if (db === 'mysql') { %>    const [inserted] = await this.db.insert(<%= plural(lowercased(name)) %>).values({
-      ...create<%= singular(classify(name)) %>Dto,
-      password: await argon2.hash(create<%= singular(classify(name)) %>Dto.password),
-    }).$returningId();
-    const [created<%= singular(classify(name)) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, inserted.id));
-    return created<%= singular(classify(name)) %>;
-<% } else { %>    const [created<%= singular(classify(name)) %>] = await this.db.insert(<%= plural(lowercased(name)) %>).values({
-      ...create<%= singular(classify(name)) %>Dto,
-      password: await argon2.hash(create<%= singular(classify(name)) %>Dto.password),
-    }).returning();
-    return created<%= singular(classify(name)) %>;
-<% } %>  }
+    try {
+<% if (db === 'mysql') { %>      const [inserted] = await this.db.insert(<%= plural(lowercased(name)) %>).values({
+        ...create<%= singular(classify(name)) %>Dto,
+        password: await argon2.hash(create<%= singular(classify(name)) %>Dto.password),
+      }).$returningId();
+      const [created<%= singular(classify(name)) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, inserted.id));
+      return created<%= singular(classify(name)) %>;
+<% } else { %>      const [created<%= singular(classify(name)) %>] = await this.db.insert(<%= plural(lowercased(name)) %>).values({
+        ...create<%= singular(classify(name)) %>Dto,
+        password: await argon2.hash(create<%= singular(classify(name)) %>Dto.password),
+      }).returning();
+      return created<%= singular(classify(name)) %>;
+<% } %>    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
+    }
+  }
 
   async findAll(): <%= returnListType %> {
     const rows = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>);
@@ -59,12 +72,19 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
-    if (!<%= lowercased(singular(classify(name))) %>) {
-      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    try {
+      const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+      if (!<%= lowercased(singular(classify(name))) %>) {
+        throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+      }
+      await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id));
+      return { ...<%= lowercased(singular(classify(name))) %>, ...update<%= singular(classify(name)) %>Dto } as <%= entityType %>;
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
     }
-    await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id));
-    return { ...<%= lowercased(singular(classify(name))) %>, ...update<%= singular(classify(name)) %>Dto } as <%= entityType %>;
   }
 
   async changePassword(id: number, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {

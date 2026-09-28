@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as argon2 from 'argon2';
@@ -7,13 +7,25 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Document } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 
+function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: number; driverError?: { code?: number } };
+  return e?.code === 11000 || e?.driverError?.code === 11000;
+}
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectModel(<%= singular(classify(name)) %>.name) private <%= lowercased(singular(classify(name))) %>Model: Model<<%= singular(classify(name)) %>Document>) {}
 
-  create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    const created<%= singular(classify(name)) %> = new this.<%= lowercased(singular(classify(name))) %>Model(create<%= singular(classify(name)) %>Dto);
-    return created<%= singular(classify(name)) %>.save();
+  async create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
+    try {
+      const created<%= singular(classify(name)) %> = new this.<%= lowercased(singular(classify(name))) %>Model(create<%= singular(classify(name)) %>Dto);
+      return await created<%= singular(classify(name)) %>.save();
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
+    }
   }
 
   findAll(): <%= returnListType %> {
@@ -32,8 +44,15 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Model.findOne({ username }).select('+password').exec();
   }
 
-  update(id: string, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Model.findByIdAndUpdate(id, update<%= singular(classify(name)) %>Dto, { returnDocument: 'after' }).exec();
+  async update(id: string, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnNullableType %> {
+    try {
+      return await this.<%= lowercased(singular(classify(name))) %>Model.findByIdAndUpdate(id, update<%= singular(classify(name)) %>Dto, { returnDocument: 'after' }).exec();
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
+    }
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {

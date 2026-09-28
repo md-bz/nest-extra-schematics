@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
@@ -8,12 +8,24 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
 
+function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: number; driverError?: { code?: number } };
+  return e?.code === 11000 || e?.driverError?.code === 11000;
+}
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectRepository(<%= singular(classify(name)) %>) private <%= lowercased(singular(classify(name))) %>Repository: MongoRepository<<%= singular(classify(name)) %>>) {}
 
-  create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.save(this.<%= lowercased(singular(classify(name))) %>Repository.create(create<%= singular(classify(name)) %>Dto));
+  async create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
+    try {
+      return await this.<%= lowercased(singular(classify(name))) %>Repository.save(this.<%= lowercased(singular(classify(name))) %>Repository.create(create<%= singular(classify(name)) %>Dto));
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
+    }
   }
 
   findAll(): <%= returnListType %> {
@@ -39,21 +51,28 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: string, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-<% if (type === 'microservice' || type === 'ws') { %>    const { id: _id, ...update } = update<%= singular(classify(name)) %>Dto;
-    const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: update },
-      { returnDocument: 'after' },
-    );
-<% } else { %>    const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: update<%= singular(classify(name)) %>Dto },
-      { returnDocument: 'after' },
-    );
-<% } %>    if (!updated<%= singular(classify(name)) %>) {
-      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    try {
+<% if (type === 'microservice' || type === 'ws') { %>      const { id: _id, ...update } = update<%= singular(classify(name)) %>Dto;
+      const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: update },
+        { returnDocument: 'after' },
+      );
+<% } else { %>      const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: update<%= singular(classify(name)) %>Dto },
+        { returnDocument: 'after' },
+      );
+<% } %>      if (!updated<%= singular(classify(name)) %>) {
+        throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+      }
+      return updated<%= singular(classify(name)) %> as <%= entityType %>;
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
     }
-    return updated<%= singular(classify(name)) %> as <%= entityType %>;
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {

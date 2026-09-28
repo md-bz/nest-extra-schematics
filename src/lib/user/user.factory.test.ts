@@ -78,6 +78,7 @@ describe('User Factory', () => {
     expect(service).toContain("select('+password')");
     expect(service).toContain('argon2.verify(');
     expect(service).toContain('UnauthorizedException');
+    expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
   });
 
   it('should expose email/username finders for auth login', async () => {
@@ -127,6 +128,7 @@ describe('User Factory', () => {
       "throw new NotFoundException(`User with ID ${id} not found`);",
     );
     expect(service).not.toContain('findByIdAndUpdate');
+    expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     expect(tree.readContent('/users/dto/update-user.dto.ts')).toContain(
       'OmitType(',
     );
@@ -162,6 +164,7 @@ describe('User Factory', () => {
     expect(service).toContain('argon2.hash(changePasswordDto.password)');
     expect(service).not.toContain('ObjectId');
     expect(service).not.toContain('MongoRepository');
+    expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     const controller = tree.readContent('/users/users.controller.ts');
     expect(controller).toContain('findOne(+id)');
     expect(controller).toContain('changePassword(+id,');
@@ -240,6 +243,8 @@ describe('User Factory', () => {
     expect(service).toContain('argon2.hash(changePasswordDto.password)');
     expect(service).toContain('async findByEmail(email: string): Promise<User | null>');
     expect(service).not.toContain('this.userRepository');
+    expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
+    expect(service).toContain('e?.cause?.code');
     expect(service).toContain('select(publicUserColumns)');
     expect(service).not.toContain('password: users.password');
     expect(tree.readContent('drizzle.config.ts')).toContain(

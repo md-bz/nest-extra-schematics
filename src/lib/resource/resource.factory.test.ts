@@ -1605,8 +1605,15 @@ type Mutation {
         '@InjectModel(User.name) private userModel: Model<UserDocument>',
       );
       expect(tree.readContent('/users/users.service.ts')).toContain(
-        'return createdUser.save();',
+        'return await createdUser.save();',
       );
+      expect(
+        (
+          tree
+            .readContent('/users/users.service.ts')
+            .match(/new ConflictException/g) ?? []
+        ).length,
+      ).toBe(2);
       expect(tree.readContent('/users/users.controller.ts')).toContain(
         'return this.usersService.findOne(id);',
       );
@@ -1684,6 +1691,13 @@ type Mutation {
       expect(tree.readContent('/users/users.service.ts')).not.toContain(
         '.delete(',
       );
+      expect(
+        (
+          tree
+            .readContent('/users/users.service.ts')
+            .match(/new ConflictException/g) ?? []
+        ).length,
+      ).toBe(2);
       expect(tree.readContent('/users/users.controller.ts')).toContain(
         'return this.usersService.findOne(id);',
       );
@@ -1842,6 +1856,13 @@ export class AppModule {}
       expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
         '@PrimaryGeneratedColumn()',
       );
+      expect(
+        (
+          tree
+            .readContent('/users/users.service.ts')
+            .match(/new ConflictException/g) ?? []
+        ).length,
+      ).toBe(2);
     });
 
     it('should reject sqlite with mongoose', async () => {
@@ -2066,6 +2087,8 @@ export class AppModule {}
         'throw new NotFoundException(`User with ID ${id} not found`);',
       );
       expect(service).not.toContain('Repository');
+      expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
+      expect(service).toContain('e?.cause?.code');
       expect(tree.readContent('/users/users.module.ts')).not.toContain(
         'forFeature',
       );

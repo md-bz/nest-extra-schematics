@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as argon2 from 'argon2';
@@ -7,12 +7,25 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
 
+function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: string; driverError?: { code?: string } };
+  const code = e?.driverError?.code ?? e?.code;
+  return code === '23505' || code === 'ER_DUP_ENTRY' || String(code).startsWith('SQLITE_CONSTRAINT');
+}
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectRepository(<%= singular(classify(name)) %>) private <%= lowercased(singular(classify(name))) %>Repository: Repository<<%= singular(classify(name)) %>>) {}
 
-  create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.save(this.<%= lowercased(singular(classify(name))) %>Repository.create(create<%= singular(classify(name)) %>Dto));
+  async create(create<%= singular(classify(name)) %>Dto: Create<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
+    try {
+      return await this.<%= lowercased(singular(classify(name))) %>Repository.save(this.<%= lowercased(singular(classify(name))) %>Repository.create(create<%= singular(classify(name)) %>Dto));
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
+    }
   }
 
   findAll(): <%= returnListType %> {
@@ -42,11 +55,18 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
-    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.preload({ id, ...update<%= singular(classify(name)) %>Dto });
-    if (!<%= lowercased(singular(classify(name))) %>) {
-      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    try {
+      const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.preload({ id, ...update<%= singular(classify(name)) %>Dto });
+      if (!<%= lowercased(singular(classify(name))) %>) {
+        throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+      }
+      return await this.<%= lowercased(singular(classify(name))) %>Repository.save(<%= lowercased(singular(classify(name))) %>);
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        throw new ConflictException('Username or email already exists');
+      }
+      throw err;
     }
-    return this.<%= lowercased(singular(classify(name))) %>Repository.save(<%= lowercased(singular(classify(name))) %>);
   }
 
   async changePassword(id: number, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {
