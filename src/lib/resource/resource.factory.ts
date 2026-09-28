@@ -23,11 +23,13 @@ import {
   ArrayLiteralExpression,
   CallExpression,
   createSourceFile,
+  Expression,
   Node,
   ObjectLiteralExpression,
   PropertyAssignment,
   SourceFile,
   SyntaxKind,
+  StringLiteral,
 } from 'typescript';
 import { ScriptTarget } from 'typescript';
 import {
@@ -74,6 +76,7 @@ export function main(options: ResourceOptions): Rule {
         addDeclarationToModule(options),
         addEntityToAppModuleIfApplies(options),
         mergeWith(generate(options)),
+        addEntityToDrizzleConfigIfApplies(options),
         options.format === true ? formatFiles() : noop(),
       ]),
     )(tree, context);
@@ -395,6 +398,142 @@ function findForRootEntities(
   return result;
 }
 
+function addEntityToDrizzleConfigIfApplies(options: ResourceOptions): Rule {
+  return (tree: Tree) => {
+    if (options.orm !== 'drizzle') {
+      return tree;
+    }
+    const entityPath = `${options.path}/entities/${pluralize.singular(options.name)}.entity.ts`;
+    if (!tree.exists(entityPath)) {
+      return tree;
+    }
+    const entry = `./${entityPath.replace(/^\/+/, '')}`;
+    const configPath = 'drizzle.config.ts';
+    const existing = tree.read(configPath)?.toString();
+    if (existing !== undefined) {
+      const updated = appendDrizzleSchemaEntry(existing, entry);
+      if (updated !== existing) {
+        tree.overwrite(configPath, updated);
+      }
+      return tree;
+    }
+    tree.create(configPath, createDrizzleConfig(entry, options.db));
+    return tree;
+  };
+}
+
+function findDrizzleSchemaValue(source: SourceFile): Expression | undefined {
+  let result: Expression | undefined;
+
+  const visit = (node: Node) => {
+    if (result) return;
+
+    if (node.kind === SyntaxKind.PropertyAssignment) {
+      const property = node as PropertyAssignment;
+      if (property.name.getText(source) === 'schema') {
+        result = property.initializer;
+        return;
+      }
+    }
+
+    node.forEachChild(visit);
+  };
+
+  visit(source);
+  return result;
+}
+
+function appendDrizzleSchemaEntry(content: string, entry: string): string {
+  const source = createSourceFile(
+    'drizzle.config.ts',
+    content,
+    ScriptTarget.ES2017,
+    true,
+  );
+  const schema = findDrizzleSchemaValue(source);
+  if (!schema) {
+    return content;
+  }
+  if (schema.kind === SyntaxKind.StringLiteral) {
+    const literal = schema as StringLiteral;
+    if (literal.text === entry) {
+      return content;
+    }
+    const start = literal.getStart(source);
+    console.log('start is ', start);
+
+    return (
+      content.slice(0, start) +
+      `[${literal.getText(source)}, '${entry}']` +
+      content.slice(literal.getEnd())
+    );
+  }
+  if (schema.kind !== SyntaxKind.ArrayLiteralExpression) {
+    return content;
+  }
+  const array = schema as ArrayLiteralExpression;
+  const alreadyThere = array.elements.some(
+    (element) => element.getText(source).slice(1, -1) === entry,
+  );
+  if (alreadyThere) {
+    return content;
+  }
+  if (array.elements.length === 0) {
+    const position = array.getEnd() - 1;
+    return content.slice(0, position) + `'${entry}'` + content.slice(position);
+  }
+
+  const first = array.elements[0];
+  const last = array.elements[array.elements.length - 1];
+  const multiline = content
+    .slice(array.getStart(source), first.getStart(source))
+    .includes('\n');
+  const after = content.slice(last.getEnd(), array.getEnd());
+  const trailingComma = /^[ \t]*,/.exec(after);
+  const lineStart = content.lastIndexOf('\n', first.getStart(source)) + 1;
+  const indent = /^[ \t]*/.exec(content.slice(lineStart))?.[0] ?? '  ';
+
+  if (multiline) {
+    if (trailingComma) {
+      const position = last.getEnd() + trailingComma[0].length;
+      return (
+        content.slice(0, position) +
+        `\n${indent}'${entry}'` +
+        content.slice(position)
+      );
+    }
+    const position = last.getEnd();
+    return (
+      content.slice(0, position) +
+      `,\n${indent}'${entry}'` +
+      content.slice(position)
+    );
+  }
+  if (trailingComma) {
+    const position = last.getEnd() + trailingComma[0].length;
+    return content.slice(0, position) + ` '${entry}'` + content.slice(position);
+  }
+  const position = last.getEnd();
+  return content.slice(0, position) + `, '${entry}'` + content.slice(position);
+}
+
+function createDrizzleConfig(entry: string, db: string | undefined): string {
+  const dialect = db === 'mysql' || db === 'sqlite' ? db : 'postgresql';
+  return `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: '${dialect}',
+  schema: [
+    '${entry}',
+  ],
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+}
+
 function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {
   return (host: Tree, context: SchematicContext) => {
     if (options.orm !== 'mongoose') {
@@ -484,6 +623,14 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
           });
           installed = true;
         }
+      }
+      if (!getPackageJsonDependency(host, 'drizzle-kit')) {
+        addPackageJsonDependency(host, {
+          type: NodeDependencyType.Dev,
+          name: 'drizzle-kit',
+          version: 'rc',
+        });
+        installed = true;
       }
       if (installed) {
         context.addTask(new NodePackageInstallTask());

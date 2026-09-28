@@ -242,6 +242,9 @@ describe('User Factory', () => {
     expect(service).not.toContain('this.userRepository');
     expect(service).toContain('select(publicUserColumns)');
     expect(service).not.toContain('password: users.password');
+    expect(tree.readContent('drizzle.config.ts')).toContain(
+      './users/entities/user.entity.ts',
+    );
     const module = tree.readContent('/users/users.module.ts');
     expect(module).not.toContain('forFeature');
     expect(module).not.toContain('MongooseModule');

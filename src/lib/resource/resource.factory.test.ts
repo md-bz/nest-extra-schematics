@@ -2017,6 +2017,7 @@ export class AppModule {}
         orm: 'drizzle',
       });
       expect(tree.files).toEqual([
+        '/drizzle.config.ts',
         '/users/users.controller.spec.ts',
         '/users/users.controller.ts',
         '/users/users.module.ts',
@@ -2131,6 +2132,143 @@ export class AppModule {}
       expect(pkg.dependencies['pg']).toBeDefined();
       expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
       expect(pkg.dependencies['mongoose']).toBeUndefined();
+      expect(pkg.devDependencies['drizzle-kit']).toBe('rc');
+    });
+
+    it('should create drizzle.config.ts with the generated entity', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        orm: 'drizzle',
+      });
+      const config = tree.readContent('drizzle.config.ts');
+      expect(config).toContain("dialect: 'postgresql'");
+      expect(config).toContain("'./users/entities/user.entity.ts'");
+      expect(config).toContain("out: './drizzle'");
+      expect(config).toContain('process.env.DATABASE_URL!');
+    });
+
+    it('should pick the dialect from the db', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'items',
+        orm: 'drizzle',
+        db: 'sqlite',
+      });
+      expect(tree.readContent('drizzle.config.ts')).toContain(
+        "dialect: 'sqlite'",
+      );
+    });
+
+    it('should append the entity to an existing drizzle.config.ts', async () => {
+      const existing = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: [
+    './src/books/entities/book.entity.ts',
+    './src/u2/entities/u2.entity.ts',
+  ],
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      const expected = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: [
+    './src/books/entities/book.entity.ts',
+    './src/u2/entities/u2.entity.ts',
+    './notes/entities/note.entity.ts'
+  ],
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      const base = Tree.empty();
+      base.create('drizzle.config.ts', existing);
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'notes', orm: 'drizzle', db: 'postgres' },
+        base,
+      );
+      expect(tree.readContent('drizzle.config.ts')).toBe(expected);
+    });
+
+    it('should not duplicate the schema entry', async () => {
+      const existing = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: [
+    './users/entities/user.entity.ts',
+  ],
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      const base = Tree.empty();
+      base.create('drizzle.config.ts', existing);
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', orm: 'drizzle' },
+        base,
+      );
+      expect(tree.readContent('drizzle.config.ts')).toBe(existing);
+    });
+
+    it('should turn a string schema into an array and keep the old entry', async () => {
+      const existing = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: './src/books/entities/book.entity.ts',
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      const base = Tree.empty();
+      base.create('drizzle.config.ts', existing);
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'notes', orm: 'drizzle' },
+        base,
+      );
+      expect(tree.readContent('drizzle.config.ts')).toContain(
+        "schema: ['./src/books/entities/book.entity.ts', './notes/entities/note.entity.ts'],",
+      );
+      expect(tree.readContent('drizzle.config.ts')).toContain(
+        "out: './drizzle'",
+      );
+    });
+
+    it('should not change a string schema that already points at the entity', async () => {
+      const existing = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: './notes/entities/note.entity.ts',
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      const base = Tree.empty();
+      base.create('drizzle.config.ts', existing);
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'notes', orm: 'drizzle' },
+        base,
+      );
+      expect(tree.readContent('drizzle.config.ts')).toBe(existing);
     });
   });
 });
