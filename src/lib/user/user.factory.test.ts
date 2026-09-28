@@ -225,12 +225,12 @@ describe('User Factory', () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       orm: 'drizzle',
     });
-    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
-    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-    const entity = tree.readContent('/users/entities/user.entity.ts');
-    expect(entity).toContain("export const users = pgTable('users', {");
-    expect(entity).toContain("password: text('password').notNull()");
-    expect(entity).not.toContain('@BeforeInsert()');
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
+    const schema = tree.readContent('/users/schemas/user.schema.ts');
+    expect(schema).toContain("export const users = pgTable('users', {");
+    expect(schema).toContain("password: text('password').notNull()");
+    expect(schema).not.toContain('@BeforeInsert()');
     const service = tree.readContent('/users/users.service.ts');
     expect(service).toContain(
       '@InjectDrizzle() private readonly db: NodePgDatabase',
@@ -243,7 +243,7 @@ describe('User Factory', () => {
     expect(service).toContain('select(publicUserColumns)');
     expect(service).not.toContain('password: users.password');
     expect(tree.readContent('drizzle.config.ts')).toContain(
-      './users/entities/user.entity.ts',
+      './users/schemas/user.schema.ts',
     );
     const module = tree.readContent('/users/users.module.ts');
     expect(module).not.toContain('forFeature');
@@ -261,7 +261,7 @@ describe('User Factory', () => {
       orm: 'drizzle',
       db: 'mysql',
     });
-    expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
+    expect(tree.readContent('/users/schemas/user.schema.ts')).toContain(
       "mysqlTable('users', {",
     );
     expect(tree.readContent('/users/users.service.ts')).toContain(

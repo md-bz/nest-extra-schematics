@@ -6,7 +6,7 @@ import * as argon2 from 'argon2';
 import { ChangePasswordDto } from './dto/change-password.dto<%= isEsm ? '.js' : '' %>';
 import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
-import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
+import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 
 const publicUserColumns = {
   id: <%= plural(lowercased(name)) %>.id,

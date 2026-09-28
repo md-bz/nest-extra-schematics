@@ -171,7 +171,7 @@ function generate(options: ResourceOptions): Source {
           return branch === null;
         }
         if (path.includes('/schemas/')) {
-          return isMongoose && !!options.crud;
+          return (isMongoose || isDrizzle) && !!options.crud;
         }
         if (path.endsWith('.dto.ts')) {
           return (
@@ -215,8 +215,8 @@ function generate(options: ResourceOptions): Source {
           // Entity class file workaround
           // When an invalid glob path for entities has been specified (on the application part)
           // TypeORM was trying to load a template class
-          // mongoose uses schemas/ instead, so no entity file
-          return !isMongoose && !!options.crud;
+          // mongoose and drizzle use schemas/ instead, so no entity file
+          return !isMongoose && !isDrizzle && !!options.crud;
         }
         return true;
       }),
@@ -403,11 +403,11 @@ function addEntityToDrizzleConfigIfApplies(options: ResourceOptions): Rule {
     if (options.orm !== 'drizzle') {
       return tree;
     }
-    const entityPath = `${options.path}/entities/${pluralize.singular(options.name)}.entity.ts`;
-    if (!tree.exists(entityPath)) {
+    const schemaPath = `${options.path}/schemas/${pluralize.singular(options.name)}.schema.ts`;
+    if (!tree.exists(schemaPath)) {
       return tree;
     }
-    const entry = `./${entityPath.replace(/^\/+/, '')}`;
+    const entry = `./${schemaPath.replace(/^\/+/, '')}`;
     const configPath = 'drizzle.config.ts';
     const existing = tree.read(configPath)?.toString();
     if (existing !== undefined) {
@@ -460,7 +460,6 @@ function appendDrizzleSchemaEntry(content: string, entry: string): string {
       return content;
     }
     const start = literal.getStart(source);
-    console.log('start is ', start);
 
     return (
       content.slice(0, start) +

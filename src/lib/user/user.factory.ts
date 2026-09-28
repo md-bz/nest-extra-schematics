@@ -131,18 +131,15 @@ function overwriteUserFiles(options: UserOptions): Rule {
             return isPasswordRoute && branchPath === branch;
           }
           if (path.includes('/schemas/')) {
-            return hasSchema;
+            return hasSchema && (isMongoose || isDrizzle);
           }
           if (path.includes('/entities/')) {
-            return hasEntity && (isTypeOrm || isDrizzle);
+            return hasEntity && isTypeOrm;
           }
           if (path.endsWith('change-password.dto.ts')) {
             return isPasswordRoute;
           }
-          if (
-            path.endsWith('.controller.ts') ||
-            path.endsWith('.module.ts')
-          ) {
+          if (path.endsWith('.controller.ts') || path.endsWith('.module.ts')) {
             return isPasswordRoute;
           }
           if (path.endsWith('.dto.ts')) {

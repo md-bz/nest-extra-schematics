@@ -6,7 +6,7 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';<% } else { %>
 import { Create<%= singular(classify(name)) %>Input } from './dto/create-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Input } from './dto/update-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';<% } %>
-import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
+import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 
 @Injectable()
 export class <%= classify(name) %>Service {

@@ -1,5 +1,5 @@
 import { Resolver<% if (crud && type === 'graphql-schema-first') { %>, Query, Mutation, Args<% } else if (crud && type === 'graphql-code-first' && (isMongoose || (isTypeOrm && db === 'mongodb'))) { %>, Query, Mutation, Args, ID<% } else if (crud && type === 'graphql-code-first') { %>, Query, Mutation, Args, Int<% } %> } from '@nestjs/graphql';
-import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '.js' : '' %>';<% if (crud && type === 'graphql-code-first' && isMongoose) { %>
+import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '.js' : '' %>';<% if (crud && type === 'graphql-code-first' && (isMongoose || isDrizzle)) { %>
 import { <%= singular(classify(name)) %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';<% } else if (crud && type === 'graphql-code-first') { %>
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% } %><% if (crud) { %>
 import { Create<%= singular(classify(name)) %>Input } from './dto/create-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';

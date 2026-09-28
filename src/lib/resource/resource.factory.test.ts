@@ -2025,16 +2025,16 @@ export class AppModule {}
         '/users/users.service.ts',
         '/users/dto/create-user.dto.ts',
         '/users/dto/update-user.dto.ts',
-        '/users/entities/user.entity.ts',
+        '/users/schemas/user.schema.ts',
       ]);
-      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-      const entity = tree.readContent('/users/entities/user.entity.ts');
-      expect(entity).toContain("export const users = pgTable('users', {");
-      expect(entity).toContain(
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
+      const schema = tree.readContent('/users/schemas/user.schema.ts');
+      expect(schema).toContain("export const users = pgTable('users', {");
+      expect(schema).toContain(
         "integer('id').primaryKey().generatedAlwaysAsIdentity()",
       );
-      expect(entity).toContain('export type User = typeof users.$inferSelect;');
-      expect(entity).not.toContain('export class User');
+      expect(schema).toContain('export type User = typeof users.$inferSelect;');
+      expect(schema).not.toContain('export class User');
     });
 
     it('should reject mongodb with drizzle', async () => {
@@ -2059,7 +2059,7 @@ export class AppModule {}
       );
       expect(service).toContain("from 'drizzle-orm/node-postgres'");
       expect(service).toContain(
-        "import { users, type User } from './entities/user.entity'",
+        "import { users, type User } from './schemas/user.schema'",
       );
       expect(service).toContain('.returning()');
       expect(service).toContain(
@@ -2092,9 +2092,9 @@ export class AppModule {}
         db: 'sqlite',
         orm: 'drizzle',
       });
-      const entity = tree.readContent('/users/entities/user.entity.ts');
-      expect(entity).toContain("sqliteTable('users', {");
-      expect(entity).toContain("integer('id').primaryKey({ autoIncrement: true })");
+      const schema = tree.readContent('/users/schemas/user.schema.ts');
+      expect(schema).toContain("sqliteTable('users', {");
+      expect(schema).toContain("integer('id').primaryKey({ autoIncrement: true })");
       expect(tree.readContent('/users/users.service.ts')).toContain(
         'BetterSQLite3Database',
       );
@@ -2109,9 +2109,9 @@ export class AppModule {}
         db: 'mysql',
         orm: 'drizzle',
       });
-      const entity = tree.readContent('/users/entities/user.entity.ts');
-      expect(entity).toContain("mysqlTable('users', {");
-      expect(entity).toContain("int('id').autoincrement().primaryKey()");
+      const schema = tree.readContent('/users/schemas/user.schema.ts');
+      expect(schema).toContain("mysqlTable('users', {");
+      expect(schema).toContain("int('id').autoincrement().primaryKey()");
       const service = tree.readContent('/users/users.service.ts');
       expect(service).toContain('MySql2Database');
       expect(service).toContain('$returningId()');
@@ -2135,14 +2135,14 @@ export class AppModule {}
       expect(pkg.devDependencies['drizzle-kit']).toBe('rc');
     });
 
-    it('should create drizzle.config.ts with the generated entity', async () => {
+    it('should create drizzle.config.ts with the generated schema', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         orm: 'drizzle',
       });
       const config = tree.readContent('drizzle.config.ts');
       expect(config).toContain("dialect: 'postgresql'");
-      expect(config).toContain("'./users/entities/user.entity.ts'");
+      expect(config).toContain("'./users/schemas/user.schema.ts'");
       expect(config).toContain("out: './drizzle'");
       expect(config).toContain('process.env.DATABASE_URL!');
     });
@@ -2158,7 +2158,7 @@ export class AppModule {}
       );
     });
 
-    it('should append the entity to an existing drizzle.config.ts', async () => {
+    it('should append the schema entry to an existing drizzle.config.ts', async () => {
       const existing = `import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
@@ -2180,7 +2180,7 @@ export default defineConfig({
   schema: [
     './src/books/entities/book.entity.ts',
     './src/u2/entities/u2.entity.ts',
-    './notes/entities/note.entity.ts'
+    './notes/schemas/note.schema.ts'
   ],
   out: './drizzle',
   dbCredentials: {
@@ -2204,7 +2204,7 @@ export default defineConfig({
 export default defineConfig({
   dialect: 'postgresql',
   schema: [
-    './users/entities/user.entity.ts',
+    './users/schemas/user.schema.ts',
   ],
   out: './drizzle',
   dbCredentials: {
@@ -2242,19 +2242,19 @@ export default defineConfig({
         base,
       );
       expect(tree.readContent('drizzle.config.ts')).toContain(
-        "schema: ['./src/books/entities/book.entity.ts', './notes/entities/note.entity.ts'],",
+        "schema: ['./src/books/entities/book.entity.ts', './notes/schemas/note.schema.ts'],",
       );
       expect(tree.readContent('drizzle.config.ts')).toContain(
         "out: './drizzle'",
       );
     });
 
-    it('should not change a string schema that already points at the entity', async () => {
+    it('should not change a string schema that already points at the schema', async () => {
       const existing = `import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './notes/entities/note.entity.ts',
+  schema: './notes/schemas/note.schema.ts',
   out: './drizzle',
   dbCredentials: {
     url: process.env.DATABASE_URL!,

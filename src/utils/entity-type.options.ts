@@ -9,9 +9,10 @@ export function entityTypeOptions(name: string, orm?: string) {
   const file = pluralize.singular(name);
   return {
     entityType,
-    entityPath: isMongoose
-      ? `./schemas/${file}.schema`
-      : `./entities/${file}.entity`,
+    entityPath:
+      isMongoose || orm === 'drizzle'
+        ? `./schemas/${file}.schema`
+        : `./entities/${file}.entity`,
     hasOrm,
     returnOneType: hasOrm ? `Promise<${entityType}>` : 'string',
     returnListType: hasOrm ? `Promise<${entityType}[]>` : 'string',
