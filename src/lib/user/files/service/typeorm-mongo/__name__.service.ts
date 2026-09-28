@@ -13,6 +13,8 @@ function isDuplicateKey(err: unknown): boolean {
   return e?.code === 11000 || e?.driverError?.code === 11000;
 }
 
+const publicSelect = { id: true, username: true, email: true, firstName: true, lastName: true, phoneNumber: true };
+
 @Injectable()
 export class <%= classify(name) %>Service {
   constructor(@InjectRepository(<%= singular(classify(name)) %>) private <%= lowercased(singular(classify(name))) %>Repository: MongoRepository<<%= singular(classify(name)) %>>) {}
@@ -29,24 +31,27 @@ export class <%= classify(name) %>Service {
   }
 
   findAll(): <%= returnListType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.find();
+    return this.<%= lowercased(singular(classify(name))) %>Repository.find({ select: publicSelect });
   }
 
   findOne(id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.findOneBy({ id: new ObjectId(id) });
+    return this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
+      where: { id: new ObjectId(id) },
+      select: publicSelect,
+    });
   }
 
   findByEmail(email: string): <%= returnNullableType %> {
     return this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
       where: { email },
-      select: { id: true, username: true, email: true, firstName: true, lastName: true, phoneNumber: true, password: true },
+      select: { ...publicSelect, password: true },
     });
   }
 
   findByUsername(username: string): <%= returnNullableType %> {
     return this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
       where: { username },
-      select: { id: true, username: true, email: true, firstName: true, lastName: true, phoneNumber: true, password: true },
+      select: { ...publicSelect, password: true },
     });
   }
 
@@ -56,12 +61,12 @@ export class <%= classify(name) %>Service {
       const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: update },
-        { returnDocument: 'after' },
+        { returnDocument: 'after', projection: { password: 0 } },
       );
 <% } else { %>      const updated<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: update<%= singular(classify(name)) %>Dto },
-        { returnDocument: 'after' },
+        { returnDocument: 'after', projection: { password: 0 } },
       );
 <% } %>      if (!updated<%= singular(classify(name)) %>) {
         throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
@@ -78,7 +83,7 @@ export class <%= classify(name) %>Service {
   async changePassword(id: string, changePasswordDto: ChangePasswordDto): <%= returnOneType %> {
     const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
       where: { id: new ObjectId(id) },
-      select: { id: true, username: true, email: true, firstName: true, lastName: true, phoneNumber: true, password: true },
+      select: { ...publicSelect, password: true },
     });
     if (!<%= lowercased(singular(classify(name))) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
@@ -95,7 +100,7 @@ export class <%= classify(name) %>Service {
   }
 
   async remove(id: string): <%= returnOneType %> {
-    const removed<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndDelete({ _id: new ObjectId(id) });
+    const removed<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneAndDelete({ _id: new ObjectId(id) }, { projection: { password: 0 } });
     if (!removed<%= singular(classify(name)) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
     }

@@ -99,7 +99,10 @@ describe('User Factory', () => {
     const entity = tree.readContent('/users/entities/user.entity.ts');
     expect(entity).toContain('@ObjectIdColumn()');
     expect(entity).toContain('id!: ObjectId;');
+    expect(entity).toContain('Index, ObjectIdColumn');
     expect(entity).toContain('username!: string;');
+    expect((entity.match(/@Index\(\{ unique: true \}\)/g) ?? []).length).toBe(2);
+    expect(entity).not.toContain('@Column({ unique: true })');
     expect(entity).toContain('@Column({ select: false })');
     expect(entity).toContain('password!: string;');
     expect(entity).toContain('@BeforeInsert()');
@@ -112,7 +115,12 @@ describe('User Factory', () => {
     expect(service).toContain(
       '@InjectRepository(User) private userRepository: MongoRepository<User>',
     );
-    expect(service).toContain('findOneBy({ id: new ObjectId(id) })');
+    expect(service).not.toContain('findOneBy(');
+    expect(service).toContain('where: { id: new ObjectId(id) }');
+    expect(service).toContain('this.userRepository.find({ select: publicSelect })');
+    expect((service.match(/select: publicSelect/g) ?? []).length).toBe(2);
+    expect((service.match(/\.\.\.publicSelect, password: true/g) ?? []).length).toBe(3);
+    expect((service.match(/projection: \{ password: 0 \}/g) ?? []).length).toBe(2);
     expect(service).toContain(
       'this.userRepository.save(this.userRepository.create(createUserDto))',
     );
@@ -122,7 +130,7 @@ describe('User Factory', () => {
     expect(service).toContain('findOneAndUpdate(');
     expect(service).toContain('{ $set: updateUserDto }');
     expect(service).toContain(
-      'findOneAndDelete({ _id: new ObjectId(id) })',
+      'findOneAndDelete({ _id: new ObjectId(id) }, { projection: { password: 0 } })',
     );
     expect(service).toContain(
       "throw new NotFoundException(`User with ID ${id} not found`);",
@@ -147,6 +155,8 @@ describe('User Factory', () => {
     const entity = tree.readContent('/users/entities/user.entity.ts');
     expect(entity).toContain('@PrimaryGeneratedColumn()');
     expect(entity).toContain('id!: number;');
+    expect(entity).toContain('@Column({ unique: true })');
+    expect(entity).not.toContain('@Index(');
     expect(entity).toContain('@BeforeInsert()');
     expect(entity).toContain('argon2.hash(this.password)');
     expect(entity).not.toContain('mongodb');
