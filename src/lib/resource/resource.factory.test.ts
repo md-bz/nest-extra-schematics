@@ -2294,4 +2294,188 @@ export default defineConfig({
       expect(tree.readContent('drizzle.config.ts')).toBe(existing);
     });
   });
+
+  describe('[REST API - MikroORM]', () => {
+    it('should generate an entity and a mikro-orm.config.ts and default to postgres', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        orm: 'mikroorm',
+      });
+      expect(tree.files).toEqual([
+        '/mikro-orm.config.ts',
+        '/users/users.controller.spec.ts',
+        '/users/users.controller.ts',
+        '/users/users.module.ts',
+        '/users/users.service.spec.ts',
+        '/users/users.service.ts',
+        '/users/dto/create-user.dto.ts',
+        '/users/dto/update-user.dto.ts',
+        '/users/entities/user.entity.ts',
+      ]);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+      const config = tree.readContent('mikro-orm.config.ts');
+      expect(config).toContain(
+        "import { defineConfig } from '@mikro-orm/postgresql';",
+      );
+      expect(config).toContain('clientUrl: process.env.DATABASE_URL!');
+      expect(config).toContain("entitiesTs: ['./src/**/*.entity.ts']");
+      expect(config).toContain('metadataProvider: ReflectMetadataProvider');
+    });
+
+    it('should wire MikroOrmModule, repository injection and numeric ids', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'mikroorm',
+      });
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain(
+        "import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';",
+      );
+      expect(entity).toContain('@PrimaryKey()');
+      expect(entity).toContain('id!: number;');
+      expect(entity).toContain('export class User {');
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        'MikroOrmModule.forFeature([User])',
+      );
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain(
+        "import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';",
+      );
+      expect(service).toContain(
+        '@InjectRepository(User) private readonly userRepository: EntityRepository<User>,',
+      );
+      expect(service).toContain('private readonly em: EntityManager');
+      expect(service).toContain('await this.em.flush();');
+      expect(service).toContain('this.em.assign(user, updateUserDto);');
+      expect(service).toContain('await this.em.remove(user).flush();');
+      expect(service).toContain('findOne({ id })');
+      expect(service).toContain(
+        'throw new NotFoundException(`User with ID ${id} not found`);',
+      );
+      expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
+      expect(tree.readContent('/users/users.controller.ts')).toContain(
+        'findOne(+id)',
+      );
+      const micro = await runner.runSchematic('resource', {
+        name: 'users',
+        type: 'microservice',
+        db: 'postgres',
+        orm: 'mikroorm',
+      });
+      expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
+        'id!: number;',
+      );
+      expect(micro.readContent('/users/users.controller.ts')).toContain(
+        'findOne(@Payload() id: number)',
+      );
+    });
+
+    it('should use the sqlite driver and dbName', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'sqlite',
+        orm: 'mikroorm',
+      });
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        "from '@mikro-orm/sqlite'",
+      );
+      const config = tree.readContent('mikro-orm.config.ts');
+      expect(config).toContain(
+        "import { defineConfig } from '@mikro-orm/sqlite';",
+      );
+      expect(config).toContain("dbName: 'sqlite.db'");
+      expect(config).not.toContain('clientUrl');
+    });
+
+    it('should use the mysql driver', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mysql',
+        orm: 'mikroorm',
+      });
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        "from '@mikro-orm/mysql'",
+      );
+      expect(tree.readContent('mikro-orm.config.ts')).toContain(
+        "import { defineConfig } from '@mikro-orm/mysql';",
+      );
+    });
+
+    it('should use string ids and the mongodb driver', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'mikroorm',
+      });
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain('id!: string;');
+      expect(entity).not.toContain('ObjectId');
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain("from '@mikro-orm/mongodb'");
+      expect(service).toContain('findOne(id: string)');
+      expect(service).not.toContain('findOne(id: number)');
+      const controller = tree.readContent('/users/users.controller.ts');
+      expect(controller).toContain('return this.usersService.findOne(id);');
+      expect(controller).not.toContain('+id');
+      expect(tree.readContent('mikro-orm.config.ts')).toContain(
+        "from '@mikro-orm/mongodb';",
+      );
+    });
+
+    it('should add the mikro-orm packages with the driver for the db', async () => {
+      const base = Tree.empty();
+      base.create('package.json', JSON.stringify({ name: 'app' }));
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'postgres', orm: 'mikroorm' },
+        base,
+      );
+      const pkg = JSON.parse(tree.readContent('package.json'));
+      expect(pkg.dependencies['@mikro-orm/nestjs']).toBeDefined();
+      expect(pkg.dependencies['@mikro-orm/core']).toBeDefined();
+      expect(pkg.dependencies['@mikro-orm/decorators']).toBeDefined();
+      expect(pkg.dependencies['@mikro-orm/postgresql']).toBeDefined();
+      expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
+      expect(pkg.dependencies['mongoose']).toBeUndefined();
+      expect(pkg.dependencies['@nestjs/drizzle']).toBeUndefined();
+    });
+
+    it('should not overwrite an existing mikro-orm.config.ts', async () => {
+      const existing = `import { defineConfig } from '@mikro-orm/sqlite';
+
+export default defineConfig({
+  dbName: 'mine.db',
+});
+`;
+      const base = Tree.empty();
+      base.create('mikro-orm.config.ts', existing);
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'notes', orm: 'mikroorm', db: 'sqlite' },
+        base,
+      );
+      expect(tree.readContent('mikro-orm.config.ts')).toBe(existing);
+    });
+
+    it('should skip the config file without crud', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        orm: 'mikroorm',
+        crud: false,
+      });
+      expect(tree.exists('mikro-orm.config.ts')).toBe(false);
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
+    });
+
+    it('should keep rejecting mongodb with drizzle', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'mongodb',
+          orm: 'drizzle',
+        }),
+      ).rejects.toThrow();
+    });
+  });
 });

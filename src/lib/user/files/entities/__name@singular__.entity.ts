@@ -1,4 +1,28 @@
-<% if (type === 'graphql-code-first') { %>import { ObjectType, Field, <% if (db === 'mongodb') { %>ID<% } else { %>Int<% } %> } from '@nestjs/graphql';
+<% if (isMikroOrm) { %>import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+
+@Entity()
+export class <%= singular(classify(name)) %> {
+  @PrimaryKey()
+  id!: <% if (db === 'mongodb') { %>string<% } else { %>number<% } %>;
+
+  @Property({ unique: true })
+  username!: string;
+
+  @Property({ unique: true })
+  email!: string;
+
+  @Property()
+  firstName!: string;
+
+  @Property()
+  lastName!: string;
+
+  @Property()
+  phoneNumber!: string;
+
+  @Property({ hidden: true })
+  password!: string;
+}<% } else { %><% if (type === 'graphql-code-first') { %>import { ObjectType, Field, <% if (db === 'mongodb') { %>ID<% } else { %>Int<% } %> } from '@nestjs/graphql';
 <% } %>import * as argon2 from 'argon2';
 <% if (db === 'mongodb') { %>import { ObjectId } from 'mongodb';
 <% } %>import { BeforeInsert, Column, Entity, <% if (db === 'mongodb') { %>Index, ObjectIdColumn<% } else { %>PrimaryGeneratedColumn<% } %> } from 'typeorm';
@@ -43,4 +67,4 @@ export class <%= singular(classify(name)) %> {
   async hashPassword() {
     this.password = await argon2.hash(this.password);
   }
-}
+}<% } %>

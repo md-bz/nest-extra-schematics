@@ -31,6 +31,7 @@ import {
 } from '../../utils/source-root.helpers.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
+import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
   matchServiceBranch,
   serviceBranch,
@@ -45,7 +46,11 @@ export function main(options: UserOptions): Rule {
     name: options.name ?? 'users',
     type: options.type ?? 'rest',
     crud: options.crud ?? true,
-    db: options.db ?? (options.orm === 'drizzle' ? 'postgres' : 'mongodb'),
+    db:
+      options.db ??
+      (options.orm === 'drizzle' || options.orm === 'mikroorm'
+        ? 'postgres'
+        : 'mongodb'),
     orm: options.orm ?? 'mongoose',
   };
   return chain([
@@ -53,7 +58,8 @@ export function main(options: UserOptions): Rule {
     overwriteUserFiles(effective),
     effective.orm === 'mongoose' ||
     effective.orm === 'typeorm' ||
-    effective.orm === 'drizzle'
+    effective.orm === 'drizzle' ||
+    effective.orm === 'mikroorm'
       ? addUserDependencies()
       : noop(),
   ]);
@@ -113,10 +119,13 @@ function overwriteUserFiles(options: UserOptions): Rule {
     const isMongoose = options.orm === 'mongoose';
     const isTypeOrm = options.orm === 'typeorm';
     const isDrizzle = options.orm === 'drizzle';
+    const isMikroOrm = options.orm === 'mikroorm';
+    const isStringId =
+      isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
     const branch = serviceBranch(options);
     const isPasswordRoute =
       !!options.crud &&
-      (isMongoose || isTypeOrm || isDrizzle) &&
+      (isMongoose || isTypeOrm || isDrizzle || isMikroOrm) &&
       (options.type ?? 'rest') === 'rest';
 
     if (!hasSchema && !hasEntity && !hasDto) {
@@ -134,7 +143,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
             return hasSchema && (isMongoose || isDrizzle);
           }
           if (path.includes('/entities/')) {
-            return hasEntity && isTypeOrm;
+            return hasEntity && (isTypeOrm || isMikroOrm);
           }
           if (path.endsWith('change-password.dto.ts')) {
             return isPasswordRoute;
@@ -144,7 +153,9 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (path.endsWith('.dto.ts')) {
             if (path.includes('/update-')) {
-              return hasDto && (isMongoose || isTypeOrm || isDrizzle);
+              return (
+                hasDto && (isMongoose || isTypeOrm || isDrizzle || isMikroOrm)
+              );
             }
             return hasDto;
           }
@@ -156,6 +167,9 @@ function overwriteUserFiles(options: UserOptions): Rule {
           isMongoose: options.orm === 'mongoose',
           isTypeOrm: options.orm === 'typeorm',
           isDrizzle,
+          isMikroOrm,
+          isStringId,
+          mikroOrmDriver: mikroOrmDriver(options.db),
           isEsm: isEsmProject(tree),
           ...entityTypeOptions(options.name, options.orm),
           ...drizzleOptions(options.db),

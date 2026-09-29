@@ -1,4 +1,13 @@
-<% if (isTypeOrm && db !== 'mongodb') { %>import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+<% if (isMikroOrm) { %>import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+
+@Entity()
+export class <%= singular(classify(name)) %> {
+  @PrimaryKey()
+  id!: <% if (db === 'mongodb') { %>string<% } else { %>number<% } %>;
+
+  @Property()
+  exampleField!: string;
+}<% } else if (isTypeOrm && db !== 'mongodb') { %>import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class <%= singular(classify(name)) %> {

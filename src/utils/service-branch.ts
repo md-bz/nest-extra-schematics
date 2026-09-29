@@ -21,10 +21,13 @@ export function serviceBranch({
   if (orm === 'mongoose') {
     return 'mongoose';
   }
+  if (orm === 'mikroorm') {
+    return 'mikroorm';
+  }
   return null;
 }
 
-const BRANCHES = 'drizzle|typeorm-sql|typeorm-mongo|mongoose';
+const BRANCHES = 'drizzle|typeorm-sql|typeorm-mongo|mongoose|mikroorm';
 const SERVICE_BRANCH_DIR = new RegExp(`^/service/(${BRANCHES})/`);
 const SERVICE_PREFIX = new RegExp(`^/service/(?:${BRANCHES}/)?`);
 

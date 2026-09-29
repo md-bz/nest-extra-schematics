@@ -46,6 +46,7 @@ import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
+import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
   isServiceTemplate,
   matchServiceBranch,
@@ -72,11 +73,13 @@ export function main(options: ResourceOptions): Rule {
         addMongooseDependenciesIfApplies(options),
         addTypeOrmDependenciesIfApplies(options),
         addDrizzleDependenciesIfApplies(options),
+        addMikroOrmDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
         addEntityToAppModuleIfApplies(options),
         mergeWith(generate(options)),
         addEntityToDrizzleConfigIfApplies(options),
+        addMikroOrmConfigIfApplies(options),
         options.format === true ? formatFiles() : noop(),
       ]),
     )(tree, context);
@@ -126,6 +129,9 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'drizzle' && target.db === undefined) {
     target.db = 'postgres';
   }
+  if (target.orm === 'mikroorm' && target.db === undefined) {
+    target.db = 'postgres';
+  }
   const sqlDbs = ['sqlite', 'postgres', 'mysql'];
   if (
     target.db !== undefined &&
@@ -141,14 +147,15 @@ function transform(options: ResourceOptions): ResourceOptions {
     (target.orm !== undefined &&
       target.orm !== 'mongoose' &&
       target.orm !== 'typeorm' &&
-      target.orm !== 'drizzle') ||
+      target.orm !== 'drizzle' &&
+      target.orm !== 'mikroorm') ||
     (target.db !== undefined &&
       sqlDbs.includes(target.db) &&
       target.orm === 'mongoose') ||
     (target.db === 'mongodb' && target.orm === 'drizzle')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose" or "--orm typeorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm" or "--orm drizzle" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose", "--orm typeorm" or "--orm mikroorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm", "--orm drizzle" or "--orm mikroorm" is supported for now.',
     );
   }
 
@@ -159,6 +166,9 @@ function generate(options: ResourceOptions): Source {
   const isMongoose = options.orm === 'mongoose';
   const isTypeOrm = options.orm === 'typeorm';
   const isDrizzle = options.orm === 'drizzle';
+  const isMikroOrm = options.orm === 'mikroorm';
+  const isStringId =
+    isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
   const branch = serviceBranch(options);
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
@@ -232,6 +242,9 @@ function generate(options: ResourceOptions): Source {
         isMongoose,
         isTypeOrm,
         isDrizzle,
+        isMikroOrm,
+        isStringId,
+        mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...drizzleOptions(options.db),
         lowercased: (name: string) => {
@@ -533,6 +546,37 @@ export default defineConfig({
 `;
 }
 
+function addMikroOrmConfigIfApplies(options: ResourceOptions): Rule {
+  return (tree: Tree) => {
+    if (options.orm !== 'mikroorm' || !options.crud) {
+      return tree;
+    }
+    // ponytail: entity globs cover every future entity, so only create-if-missing
+    if (tree.exists('mikro-orm.config.ts')) {
+      return tree;
+    }
+    tree.create('mikro-orm.config.ts', createMikroOrmConfig(options.db));
+    return tree;
+  };
+}
+
+function createMikroOrmConfig(db: string | undefined): string {
+  const connection =
+    db === 'sqlite'
+      ? "  dbName: 'sqlite.db',"
+      : '  clientUrl: process.env.DATABASE_URL!,';
+  return `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+import { defineConfig } from '@mikro-orm/${mikroOrmDriver(db)}';
+
+export default defineConfig({
+${connection}
+  entities: ['./dist/**/*.entity.js'],
+  entitiesTs: ['./src/**/*.entity.ts'],
+  metadataProvider: ReflectMetadataProvider,
+});
+`;
+}
+
 function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {
   return (host: Tree, context: SchematicContext) => {
     if (options.orm !== 'mongoose') {
@@ -630,6 +674,39 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
           version: 'rc',
         });
         installed = true;
+      }
+      if (installed) {
+        context.addTask(new NodePackageInstallTask());
+      }
+    } catch {
+      // ignore if "package.json" not found
+    }
+  };
+}
+
+function addMikroOrmDependenciesIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (options.orm !== 'mikroorm') {
+      return;
+    }
+    try {
+      let installed = false;
+      // ponytail: driver package follows the db; transform guarantees db is set
+      const names = [
+        '@mikro-orm/nestjs',
+        '@mikro-orm/core',
+        '@mikro-orm/decorators',
+        `@mikro-orm/${mikroOrmDriver(options.db)}`,
+      ];
+      for (const name of names) {
+        if (!getPackageJsonDependency(host, name)) {
+          addPackageJsonDependency(host, {
+            type: NodeDependencyType.Default,
+            name,
+            version: '*',
+          });
+          installed = true;
+        }
       }
       if (installed) {
         context.addTask(new NodePackageInstallTask());

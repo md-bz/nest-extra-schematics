@@ -24,17 +24,17 @@ export class <%= classify(name) %>Controller {
 
   @Get(':id')
   findOne(@Param('id') id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.findOne(<% if ((isMongoose || (isTypeOrm && db === 'mongodb'))) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.findOne(<% if ((isStringId)) { %>id<% } else { %>+id<% } %>);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.update(<% if ((isMongoose || (isTypeOrm && db === 'mongodb'))) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
+    return this.<%= lowercased(name) %>Service.update(<% if ((isStringId)) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.remove(<% if ((isMongoose || (isTypeOrm && db === 'mongodb'))) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.remove(<% if ((isStringId)) { %>id<% } else { %>+id<% } %>);
   }<% } else if (type === 'microservice' && crud) { %>
 
   @MessagePattern('create<%= singular(classify(name)) %>')
@@ -48,7 +48,7 @@ export class <%= classify(name) %>Controller {
   }
 
   @MessagePattern('findOne<%= singular(classify(name)) %>')
-  findOne(@Payload() id: <% if ((isMongoose || (isTypeOrm && db === 'mongodb'))) { %>string<% } else { %>number<% } %>): <%= returnNullableType %> {
+  findOne(@Payload() id: <% if ((isStringId)) { %>string<% } else { %>number<% } %>): <%= returnNullableType %> {
     return this.<%= lowercased(name) %>Service.findOne(id);
   }
 
@@ -58,7 +58,7 @@ export class <%= classify(name) %>Controller {
   }
 
   @MessagePattern('remove<%= singular(classify(name)) %>')
-  remove(@Payload() id: <% if ((isMongoose || (isTypeOrm && db === 'mongodb'))) { %>string<% } else { %>number<% } %>): <%= returnNullableType %> {
+  remove(@Payload() id: <% if ((isStringId)) { %>string<% } else { %>number<% } %>): <%= returnNullableType %> {
     return this.<%= lowercased(name) %>Service.remove(id);
   }<% } %>
 }

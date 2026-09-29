@@ -283,6 +283,73 @@ describe('User Factory', () => {
       '$returningId()',
     );
   });
+
+  it('should generate a mikroorm user with a hidden password and no hooks', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      orm: 'mikroorm',
+    });
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain(
+      "import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';",
+    );
+    expect(entity).toContain('@PrimaryKey()');
+    expect(entity).toContain('id!: number;');
+    expect(
+      (entity.match(/@Property\(\{ unique: true \}\)/g) ?? []).length,
+    ).toBe(2);
+    expect(entity).toContain('@Property({ hidden: true })');
+    expect(entity).toContain('password!: string;');
+    expect(entity).not.toContain('argon2');
+    expect(entity).not.toContain('@BeforeInsert');
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain(
+      "import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';",
+    );
+    expect(service).toContain(
+      'password: await argon2.hash(createUserDto.password)',
+    );
+    expect(service).toContain('async changePassword(id: number,');
+    expect(service).toContain('argon2.verify(');
+    expect(service).toContain('UnauthorizedException');
+    expect(service).toContain('findByEmail(email: string)');
+    expect(service).toContain('this.em.assign(user, updateUserDto);');
+    expect(service).toContain('await this.em.flush();');
+    expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
+    const module = tree.readContent('/users/users.module.ts');
+    expect(module).toContain('MikroOrmModule.forFeature([User])');
+    expect(module).toContain('exports: [UsersService]');
+    expect(module).not.toContain('MongooseModule');
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain('findOne(+id)');
+    expect(controller).toContain('changePassword(+id,');
+    expect(tree.readContent('/users/dto/update-user.dto.ts')).toContain(
+      "['password']",
+    );
+    expect(tree.readContent('mikro-orm.config.ts')).toContain(
+      "from '@mikro-orm/postgresql';",
+    );
+  });
+
+  it('should generate a mongodb mikroorm user with string ids', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      orm: 'mikroorm',
+      db: 'mongodb',
+    });
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain('id!: string;');
+    expect(entity).not.toContain('ObjectId');
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain("from '@mikro-orm/mongodb'");
+    expect(service).toContain('findOne(id: string)');
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain('return this.usersService.findOne(id);');
+    expect(controller).not.toContain('+id');
+    expect(tree.readContent('/mikro-orm.config.ts')).toContain(
+      "from '@mikro-orm/mongodb';",
+    );
+  });
 });
 
 describe('resolveOutputPaths', () => {

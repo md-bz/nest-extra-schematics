@@ -111,7 +111,7 @@
       "type": "string",
       "description": "The ORM used by the resource.",
       "default": "mongoose",
-      "enum": ["none", "mongoose", "typeorm", "drizzle"],
+      "enum": ["none", "mongoose", "typeorm", "drizzle", "mikroorm"],
       "x-prompt": {
         "message": "Which ORM do you want to use?",
         "type": "list",
@@ -119,7 +119,8 @@
           { "value": "none", "label": "None" },
           { "value": "mongoose", "label": "Mongoose" },
           { "value": "typeorm", "label": "TypeORM" },
-          { "value": "drizzle", "label": "Drizzle" }
+          { "value": "drizzle", "label": "Drizzle" },
+          { "value": "mikroorm", "label": "MikroORM" }
         ]
       }
     },

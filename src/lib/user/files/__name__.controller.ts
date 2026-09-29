@@ -21,21 +21,21 @@ export class <%= classify(name) %>Controller {
 
   @Get(':id')
   findOne(@Param('id') id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.findOne(<% if (isMongoose || (isTypeOrm && db === 'mongodb')) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.findOne(<% if (isStringId) { %>id<% } else { %>+id<% } %>);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.update(<% if (isMongoose || (isTypeOrm && db === 'mongodb')) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
+    return this.<%= lowercased(name) %>Service.update(<% if (isStringId) { %>id<% } else { %>+id<% } %>, update<%= singular(classify(name)) %>Dto);
   }
 
   @Patch(':id/password')
   changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto): <%= returnOneType %> {
-    return this.<%= lowercased(name) %>Service.changePassword(<% if (isMongoose || (isTypeOrm && db === 'mongodb')) { %>id<% } else { %>+id<% } %>, changePasswordDto);
+    return this.<%= lowercased(name) %>Service.changePassword(<% if (isStringId) { %>id<% } else { %>+id<% } %>, changePasswordDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(name) %>Service.remove(<% if (isMongoose || (isTypeOrm && db === 'mongodb')) { %>id<% } else { %>+id<% } %>);
+    return this.<%= lowercased(name) %>Service.remove(<% if (isStringId) { %>id<% } else { %>+id<% } %>);
   }
 }
