@@ -12,6 +12,15 @@ nest cli is an awesome tool, yet i find myself writing the same codes a lot, tha
 $ npm install --save-dev nest-extra-schematics
 ```
 
+## Agent skill
+
+[`.agents/skills/nest-extra-schematics/SKILL.md`](.agents/skills/nest-extra-schematics/SKILL.md)
+documents every schematic, the field syntax and the per-ORM type mapping for
+AI agents. Note that `nest g` refuses unknown flags (`--fields`, `--db`, `--orm`
+all error out) — agents should call `npx @angular-devkit/schematics-cli
+'<collection>:resource' --name=… --fields=…` instead. See
+[`.agent/skills`](.agent/skills) for the symlinked copy most tools look in.
+
 ## Features
 
 ### Schematic
