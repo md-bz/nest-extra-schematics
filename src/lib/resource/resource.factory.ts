@@ -45,7 +45,8 @@ import {
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
-import { drizzleOptions } from '../../utils/drizzle.options.js';
+import { drizzleOptions, drizzleSchemaOptions } from '../../utils/drizzle.options.js';
+import { parseFields } from '../../utils/fields.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
   isServiceTemplate,
@@ -159,6 +160,12 @@ function transform(options: ResourceOptions): ResourceOptions {
     );
   }
 
+  target.parsedFields = parseFields(target.fields, {
+    orm: target.orm,
+    db: target.db,
+    type: target.type,
+  });
+
   return target;
 }
 
@@ -170,6 +177,7 @@ function generate(options: ResourceOptions): Source {
   const isStringId =
     isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
   const branch = serviceBranch(options);
+  const parsed = options.parsedFields!;
   return (context: SchematicContext) =>
     apply(url(join('./files' as Path, options.language!)), [
       filter((path) => {
@@ -239,6 +247,8 @@ function generate(options: ResourceOptions): Source {
       template({
         ...strings,
         ...options,
+        ...parsed,
+        hasFields: parsed.fields.length > 0,
         isMongoose,
         isTypeOrm,
         isDrizzle,
@@ -247,6 +257,7 @@ function generate(options: ResourceOptions): Source {
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...drizzleOptions(options.db),
+        ...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
         lowercased: (name: string) => {
           const classifiedName = classify(name);
           return (

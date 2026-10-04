@@ -34,6 +34,23 @@ extended from nest schematic, has database (mongodb, sqlite, postgres, mysql/mar
 $ nest g -c nest-extra-schematics res notes
 ```
 
+#### Fields
+
+every resource is prompted for its entity fields. pass them as a comma-separated
+`name:type` list, suffix a field with `?` to make it optional. leave the answer
+empty to get the `exampleField` placeholder.
+
+types: `string`, `text`, `int`, `float`, `bool`, `date`, `json`, `uuid`
+
+`id` is reserved for the primary key.
+
+fields land on the entity/schema, the create dto (class-validator + `@IsOptional`)
+and, for graphql, on the object type / input type or the SDL. the update dto and
+input still come from `PartialType`, so they follow along for free.
+
+note: `date` and `json` degrade to `String` under graphql — mapping them to
+`GraphQLISODateTime`/`graphql-type-json` would pull in dependencies.
+
 ### User
 
 extended from resource, has some basic properties for user (username, email, first/last name, phone number, password), password hashing and a route for updating password.

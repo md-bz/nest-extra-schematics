@@ -1,16 +1,12 @@
 type <%= singular(classify(name)) %> {
-  # Example field (placeholder)
-  exampleField: Int
-}
+<%= sdlBody %>}
 
 input Create<%= singular(classify(name)) %>Input {
-  # Example field (placeholder)
-  exampleField: Int
-}
+<%= sdlBody %>}
 
 input Update<%= singular(classify(name)) %>Input {
   id: Int!
-}
+<% if (hasFields) { %><%= sdlBody %><% } %>}
 
 type Query {
   <%= lowercased(classify(name)) %>: [<%= singular(classify(name)) %>]!

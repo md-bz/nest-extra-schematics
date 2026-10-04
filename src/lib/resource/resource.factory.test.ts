@@ -2478,4 +2478,205 @@ export default defineConfig({
       ).rejects.toThrow();
     });
   });
+
+  describe('[fields]', () => {
+    it('should keep the exampleField placeholder without fields', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'typeorm',
+        db: 'postgres',
+      });
+      expect(tree.readContent('/notes/dto/create-note.dto.ts')).toContain(
+        'exampleField!: string;',
+      );
+    });
+
+    it('should replace the placeholder with the requested fields', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'typeorm',
+        db: 'postgres',
+        fields: 'title:string,views:int?',
+      });
+      const dto = tree.readContent('/notes/dto/create-note.dto.ts');
+      expect(dto).not.toContain('exampleField');
+      expect(dto).toBe(
+        `import { IsInt, IsOptional, IsString } from 'class-validator';
+
+export class CreateNoteDto {
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsInt()
+  views?: number;
+}
+`,
+      );
+      expect(tree.readContent('/notes/entities/note.entity.ts')).toBe(
+        `import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class Note {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'varchar', length: 255 })
+  title!: string;
+
+  @Column({ type: 'int', nullable: true })
+  views?: number;
+}
+`,
+      );
+    });
+
+    it('should extend the update dto via PartialType', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'typeorm',
+        db: 'postgres',
+        fields: 'title:string',
+      });
+      expect(tree.readContent('/notes/dto/update-note.dto.ts')).toContain(
+        'extends PartialType(CreateNoteDto)',
+      );
+    });
+
+    it('should generate mongoose props', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'mongoose',
+        fields: 'title:string,views:int?',
+      });
+      expect(tree.readContent('/notes/schemas/note.schema.ts')).toContain(
+        `  @Prop({ type: String, required: true })
+  title!: string;
+
+  @Prop({ type: Number })
+  views?: number;`,
+      );
+    });
+
+    it('should generate a drizzle schema with only the used column imports', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'drizzle',
+        db: 'postgres',
+        fields: 'title:string,views:int?',
+      });
+      expect(tree.readContent('/notes/schemas/note.schema.ts')).toBe(
+        `import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+export const notes = pgTable('notes', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  title: text('title').notNull(),
+  views: integer('views'),
+});
+
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;
+
+`,
+      );
+    });
+
+    it('should add json columns to the drizzle import list', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'drizzle',
+        db: 'postgres',
+        fields: 'meta:json',
+      });
+      expect(tree.readContent('/notes/schemas/note.schema.ts')).toContain(
+        "import { integer, jsonb, pgTable } from 'drizzle-orm/pg-core';",
+      );
+    });
+
+    it('should generate mikro-orm properties', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'mikroorm',
+        db: 'postgres',
+        fields: 'title:string,views:int?',
+      });
+      expect(tree.readContent('/notes/entities/note.entity.ts')).toContain(
+        `  @Property({ type: 'string' })
+  title!: string;
+
+  @Property({ type: 'number', nullable: true })
+  views?: number;`,
+      );
+    });
+
+    it('should generate code-first input fields', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        type: 'graphql-code-first',
+        fields: 'title:string,views:int?',
+      });
+      expect(tree.readContent('/notes/dto/create-note.input.ts')).toBe(
+        `import { InputType, Field, Int } from '@nestjs/graphql';
+
+@InputType()
+export class CreateNoteInput {
+  @Field(() => String)
+  title!: string;
+
+  @Field(() => Int, { nullable: true })
+  views?: number;
+}
+`,
+      );
+    });
+
+    it('should generate schema-first SDL', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        type: 'graphql-schema-first',
+        fields: 'title:string,views:int?',
+      });
+      const sdl = tree.readContent('/notes/notes.graphql');
+      expect(sdl).toContain(
+        `type Note {
+  title: String!
+  views: Int
+}`,
+      );
+      expect(sdl).not.toContain('Example field');
+    });
+
+    it('should snake_case columns and camelCase properties', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        orm: 'typeorm',
+        db: 'postgres',
+        fields: 'publishedAt:date',
+      });
+      expect(tree.readContent('/notes/entities/note.entity.ts')).toContain(
+        "@Column({ name: 'published_at', type: 'timestamp' })",
+      );
+    });
+
+    it('should reject a malformed field spec', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'notes',
+          orm: 'typeorm',
+          db: 'postgres',
+          fields: 'title',
+        }),
+      ).rejects.toThrow(/Invalid field/);
+    });
+
+    it('should reject the reserved id field', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'notes',
+          orm: 'typeorm',
+          db: 'postgres',
+          fields: 'id:string',
+        }),
+      ).rejects.toThrow(/reserved/);
+    });
+  });
 });

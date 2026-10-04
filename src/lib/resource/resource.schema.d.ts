@@ -1,4 +1,5 @@
 import { Path } from '@angular-devkit/core';
+import type { ParsedFields } from '../../utils/fields.js';
 
 export interface ResourceOptions {
   /**
@@ -72,4 +73,15 @@ export interface ResourceOptions {
    * Format generated files using Prettier if available.
    */
   format?: boolean;
+  /**
+   * Comma-separated "name:type" entity fields, where type is one of string,
+   * text, int, float, bool, date, json, uuid. A trailing "?" makes the field
+   * optional. Prompted for interactively.
+   * @example "title:string,body:text,views:int?,published:date?"
+   */
+  fields?: string;
+  /**
+   * Internal: the parsed "fields" spec, filled in by transform().
+   */
+  parsedFields?: ParsedFields;
 }

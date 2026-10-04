@@ -90,6 +90,15 @@
         "type": "confirmation"
       }
     },
+    "fields": {
+      "type": "string",
+      "default": "",
+      "description": "Comma-separated \"name:type\" entity fields. Types: string, text, int, float, bool, date, json, uuid. Suffix with \"?\" to make a field optional.",
+      "x-prompt": {
+        "message": "Which fields should the entity have? (comma-separated \"name:type\", e.g. \"title:string,body:text,views:int?\", leave empty for none)",
+        "type": "input"
+      }
+    },
     "db": {
       "type": "string",
       "description": "The database used by the resource.",
