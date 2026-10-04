@@ -4,6 +4,7 @@ import {
   UnitTestTree,
 } from '@angular-devkit/schematics/testing';
 import * as path from 'path';
+import type { UserOptions } from './user.schema.js';
 import { resolveOutputPaths } from './user.factory.js';
 
 describe('User Factory', () => {
@@ -232,6 +233,37 @@ describe('User Factory', () => {
       crud: false,
     });
     expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+  });
+
+  it('should reject the unsupported "fields" option', async () => {
+    await expect(
+      runner.runSchematic('user', {
+        // ponytail: UserOptions omits "fields", but a stray flag still arrives
+        // at runtime and would be silently dropped
+        fields: 'nickname:string',
+      } as unknown as UserOptions),
+    ).rejects.toThrow(/does not support the "fields" option/);
+  });
+
+  it('should ignore an empty "fields" option', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      fields: '',
+    } as unknown as UserOptions);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
+  });
+
+  it('should pre-empt the nested resource "fields" prompt', async () => {
+    // the nested schematic shares the prompt provider, so an unset "fields"
+    // would still ask the user. Prompts do not run in tests, so assert the
+    // value the nested call receives instead: with no spec it must resolve to
+    // the placeholder body, never a field list.
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      orm: 'typeorm',
+      db: 'postgres',
+    });
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    expect(entity).toContain('username!: string;');
+    expect(entity).not.toContain('exampleField');
   });
 
   it('should generate a drizzle user without hooks', async () => {

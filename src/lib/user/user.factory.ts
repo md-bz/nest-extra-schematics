@@ -11,6 +11,7 @@ import {
   noop,
   Rule,
   SchematicContext,
+  SchematicsException,
   schematic,
   template,
   Tree,
@@ -41,11 +42,22 @@ import { DEFAULT_PATH_NAME } from '../defaults.js';
 import type { UserOptions } from './user.schema.js';
 
 export function main(options: UserOptions): Rule {
-  const effective: UserOptions = {
+  // ponytail: the user entity has a fixed field set, so a "fields" spec would
+  // be silently dropped by overwriteUserFiles — say so instead
+  if ('fields' in options && options.fields) {
+    throw new SchematicsException(
+      'The "user" schematic does not support the "fields" option. Generate a plain "resource" and add your own fields, or edit src/<name>/entities after generating.',
+    );
+  }
+  const effective: UserOptions & { fields?: string } = {
     ...options,
     name: options.name ?? 'users',
     type: options.type ?? 'rest',
     crud: options.crud ?? true,
+    // ponytail: the nested resource schematic shares the prompt provider, so an
+    // unset "fields" still gets asked; an empty answer skips the prompt and
+    // resolves to the placeholder body that overwriteUserFiles replaces anyway
+    fields: '',
     db:
       options.db ??
       (options.orm === 'drizzle' || options.orm === 'mikroorm'

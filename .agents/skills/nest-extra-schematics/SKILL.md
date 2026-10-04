@@ -69,7 +69,7 @@ entity, DTOs, service and module. Say that is what you did.
 
 ## Options
 
-Shared by `resource` and `user`:
+Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 
 | option | values | default |
 |---|---|---|
@@ -78,7 +78,7 @@ Shared by `resource` and `user`:
 | `--crud` | `true`/`false` | `true` |
 | `--db` | `none`, `mongodb`, `sqlite`, `postgres`, `mysql` | inferred |
 | `--orm` | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm` | inferred |
-| `--fields` | see below | none |
+| `--fields` | see below (`resource` only) | none |
 | `--spec` | `true`/`false` | `true` |
 | `--flat` | `true`/`false` | `false` |
 | `--path`, `--skip-import`, `--format`, `--dry-run` | | |
@@ -200,13 +200,11 @@ missing rows. Return types are concrete (`Promise<Note>`), not `any`.
 
 ## Gotchas
 
-- **`user` ignores `--fields`.** It delegates to `resource` (so the option is
-  accepted and typed), but its own entity/DTO files overwrite whatever `resource`
-  produced. Adding a field to a user means editing `user.entity.ts`,
-  `create-user.dto.ts` and the update DTO by hand afterwards.
-- **The `user` schema has no `fields` prompt.** You can only set it by passing
-  the flag (which `nest g` refuses) — so interactively, user fields are simply
-  the fixed set: username, email, firstName, lastName, phoneNumber, password.
+- **`user` rejects `--fields`.** Its field set is fixed (username, email,
+  firstName, lastName, phoneNumber, password), and there is no `fields` prompt —
+  its own entity/DTO files would overwrite whatever `resource` generated. Passing
+  the flag is a hard error, not a silent no-op. To add a field, generate a plain
+  `resource` and add your own columns, or edit the generated user entity by hand.
 - **Non-interactive runs skip prompts entirely.** When stdin is not a TTY the
   prompt provider is never registered, so unanswered options fall back to schema
   defaults and you silently get an empty `exampleField` entity. This is why
