@@ -315,12 +315,23 @@ function addClassValidatorDependencyIfApplies(options: ResourceOptions): Rule {
       return;
     }
     try {
-      if (!getPackageJsonDependency(host, 'class-validator')) {
-        addPackageJsonDependency(host, {
-          type: NodeDependencyType.Default,
-          name: 'class-validator',
-          version: '*',
-        });
+      let installed = false;
+      const names = ['class-validator'];
+      // @Type(() => Date) on a date field needs class-transformer to resolve
+      if (options.parsedFields?.transformerImports) {
+        names.push('class-transformer');
+      }
+      for (const name of names) {
+        if (!getPackageJsonDependency(host, name)) {
+          addPackageJsonDependency(host, {
+            type: NodeDependencyType.Default,
+            name,
+            version: '*',
+          });
+          installed = true;
+        }
+      }
+      if (installed) {
         context.addTask(new NodePackageInstallTask());
       }
     } catch {

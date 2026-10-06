@@ -11,13 +11,13 @@ generated code is wired to a real database instead of stopping at an empty class
 **Package**: `nest-extra-schematics` (add with `npm i -D nest-extra-schematics`).
 Collection entry: `<pkg>/dist/collection.json`.
 
-| schematic | alias | what it makes |
-|---|---|---|
-| `resource` | `res` | CRUD service/controller/resolver/gateway + entity or schema |
-| `user` | `u` | a `resource` with user fields, argon2 hashing, change-password route |
-| `auth` | — | JWT (Passport) or OTP-code login wired to the user resource |
-| `application` | — | scaffolds a Nest app (`js`, `ts`, `ts-esm`) |
-| `schematic` | — | scaffolds a new schematic inside this collection |
+| schematic     | alias | what it makes                                                        |
+| ------------- | ----- | -------------------------------------------------------------------- |
+| `resource`    | `res` | CRUD service/controller/resolver/gateway + entity or schema          |
+| `user`        | `u`   | a `resource` with user fields, argon2 hashing, change-password route |
+| `auth`        | —     | JWT (Passport) or OTP-code login wired to the user resource          |
+| `application` | —     | scaffolds a Nest app (`js`, `ts`, `ts-esm`)                          |
+| `schematic`   | —     | scaffolds a new schematic inside this collection                     |
 
 ## Two ways to run it — pick the right one
 
@@ -71,17 +71,17 @@ entity, DTOs, service and module. Say that is what you did.
 
 Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 
-| option | values | default |
-|---|---|---|
-| `--name` | plural resource name | `users` for `user` |
-| `--type` | `rest`, `graphql-code-first`, `graphql-schema-first`, `microservice`, `ws` | `rest` |
-| `--crud` | `true`/`false` | `true` |
-| `--db` | `none`, `mongodb`, `sqlite`, `postgres`, `mysql` | inferred |
-| `--orm` | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm` | inferred |
-| `--fields` | see below (`resource` only) | none |
-| `--spec` | `true`/`false` | `true` |
-| `--flat` | `true`/`false` | `false` |
-| `--path`, `--skip-import`, `--format`, `--dry-run` | | |
+| option                                             | values                                                                     | default            |
+| -------------------------------------------------- | -------------------------------------------------------------------------- | ------------------ |
+| `--name`                                           | plural resource name                                                       | `users` for `user` |
+| `--type`                                           | `rest`, `graphql-code-first`, `graphql-schema-first`, `microservice`, `ws` | `rest`             |
+| `--crud`                                           | `true`/`false`                                                             | `true`             |
+| `--db`                                             | `none`, `mongodb`, `sqlite`, `postgres`, `mysql`                           | inferred           |
+| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`                       | inferred           |
+| `--fields`                                         | see below (`resource` only)                                                | none               |
+| `--spec`                                           | `true`/`false`                                                             | `true`             |
+| `--flat`                                           | `true`/`false`                                                             | `false`            |
+| `--path`, `--skip-import`, `--format`, `--dry-run` |                                                                            |                    |
 
 `auth` takes `--name`, `--method` (`jwt` or `code`), `--username-field`
 (default `email`), plus the shared `spec`/`flat`/`path`/`skip-import`/`format`.
@@ -115,6 +115,7 @@ produces, with `--db=postgres --orm=typeorm`:
 ```ts
 // dto/create-note.dto.ts
 import { IsDate, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateNoteDto {
   @IsString()
@@ -129,6 +130,7 @@ export class CreateNoteDto {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   publishedAt?: Date;
 
   @IsObject()
@@ -163,17 +165,17 @@ for free.
 
 ### Per-ORM field output
 
-| orm / db | string | int | bool | date | json | uuid |
-|---|---|---|---|---|---|---|
-| typeorm + postgres | `varchar(255)` | `int` | `boolean` | `timestamp` | `jsonb` | `uuid` |
-| typeorm + sqlite | `varchar(255)` | `integer` | `boolean` | `datetime` | `simple-json` | `varchar(36)` |
-| typeorm + mysql | `varchar(255)` | `int` | `boolean` | `datetime` | `json` | `varchar(36)` |
-| typeorm + mongodb | `@Column()` (schemaless) | | | | | |
-| mongoose | `String, required` | `Number` | `Boolean` | `Date` | `'Mixed'` | `String` |
-| mikro-orm | `type: 'string'` | `'number'` | `'boolean'` | `'Date'` | `'json'` | `'string'` |
-| drizzle + postgres | `text` | `integer` | `boolean` | `timestamp` | `jsonb` | `uuid` |
-| drizzle + sqlite | `text` | `integer` | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text` |
-| drizzle + mysql | `varchar(255)` | `int` | `boolean` | `datetime` | `json` | `varchar(36)` |
+| orm / db           | string                   | int        | bool                        | date                             | json                  | uuid          |
+| ------------------ | ------------------------ | ---------- | --------------------------- | -------------------------------- | --------------------- | ------------- |
+| typeorm + postgres | `varchar(255)`           | `int`      | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`        |
+| typeorm + sqlite   | `varchar(255)`           | `integer`  | `boolean`                   | `datetime`                       | `simple-json`         | `varchar(36)` |
+| typeorm + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
+| typeorm + mongodb  | `@Column()` (schemaless) |            |                             |                                  |                       |               |
+| mongoose           | `String, required`       | `Number`   | `Boolean`                   | `Date`                           | `'Mixed'`             | `String`      |
+| mikro-orm          | `type: 'string'`         | `'number'` | `'boolean'`                 | `'Date'`                         | `'json'`              | `'string'`    |
+| drizzle + postgres | `text`                   | `integer`  | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`        |
+| drizzle + sqlite   | `text`                   | `integer`  | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text`        |
+| drizzle + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
 
 Under graphql, `date` and `json` degrade to `String` in both code-first
 (`@Field`) and schema-first (SDL) output — mapping them to

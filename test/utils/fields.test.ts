@@ -124,6 +124,38 @@ describe('parseFields', () => {
       );
     });
 
+    it('should validate dates with IsDate and convert them with @Type', () => {
+      const parsed = parseFields('publishedAt:date?', {
+        orm: 'typeorm',
+        db: 'postgres',
+      });
+      expect(parsed.entityBody).toBe(
+        `  @Column({ name: 'published_at', type: 'timestamp', nullable: true })
+  publishedAt?: Date;
+`,
+      );
+      expect(parsed.dtoBody).toBe(
+        `  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  publishedAt?: Date;
+`,
+      );
+      expect(parsed.validatorImports).toBe('IsDate, IsOptional');
+      expect(parsed.transformerImports).toBe(
+        "import { Type } from 'class-transformer';",
+      );
+    });
+
+    it('should validate floats with IsNumber', () => {
+      const parsed = parseFields('score:float', {
+        orm: 'typeorm',
+        db: 'postgres',
+      });
+      expect(parsed.dtoBody).toContain('@IsNumber()');
+      expect(parsed.validatorImports).toBe('IsNumber');
+    });
+
     it('should pin the column name when it differs from the property', () => {
       const parsed = parseFields('publishedAt:date', {
         orm: 'typeorm',

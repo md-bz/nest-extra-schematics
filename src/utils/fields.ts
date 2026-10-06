@@ -206,6 +206,7 @@ export interface ParsedFields {
   drizzleBody: string;
   drizzleColumnFns: string[];
   validatorImports: string;
+  transformerImports: string;
   graphqlDecorators: string;
   graphqlDecoratorsAndTypes: string;
 }
@@ -234,9 +235,11 @@ export function parseFields(
     `@Field(() => ${graphqlType[field.kind]}${field.optional ? ', { nullable: true }' : ''})`;
 
   const validators = new Set<string>();
+  let needsTypeDecorator = false;
   for (const field of fields) {
     validators.add(validator[field.kind]);
     if (field.optional) validators.add('IsOptional');
+    if (field.kind === 'date') needsTypeDecorator = true;
   }
 
   return {
@@ -244,6 +247,7 @@ export function parseFields(
     dtoBody: body((f) => [
       ...(f.optional ? ['  @IsOptional()'] : []),
       `  @${validator[f.kind]}()`,
+      ...(f.kind === 'date' ? ['  @Type(() => Date)'] : []),
       `  ${prop(f)}`,
     ]),
     graphqlBody: body((f) => [`  ${graphql(f)}`, `  ${prop(f)}`]),
@@ -259,6 +263,7 @@ export function parseFields(
       ),
     ],
     validatorImports: [...validators].sort().join(', '),
+    transformerImports: needsTypeDecorator ? "import { Type } from 'class-transformer';" : '',
     graphqlDecorators: graphqlImport(['ObjectType', 'Field'], fields),
     graphqlDecoratorsAndTypes: graphqlImport(['InputType', 'Field'], fields),
   };
@@ -339,6 +344,7 @@ function empty(ctx: FieldContext): ParsedFields {
     drizzleBody: "  exampleField: text('exampleField').notNull(),\n",
     drizzleColumnFns: ['text'],
     validatorImports: 'IsString',
+    transformerImports: '',
     graphqlDecorators: 'ObjectType, Field, Int',
     graphqlDecoratorsAndTypes: 'InputType, Int, Field',
   };
