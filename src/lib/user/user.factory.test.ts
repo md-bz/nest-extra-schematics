@@ -364,17 +364,19 @@ describe('User Factory', () => {
     );
   });
 
-  it('should generate a mongodb mikroorm user with string ids', async () => {
+  it('should generate a mongodb mikroorm user with an ObjectId _id', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       orm: 'mikroorm',
       db: 'mongodb',
     });
     const entity = tree.readContent('/users/entities/user.entity.ts');
-    expect(entity).toContain('id!: string;');
-    expect(entity).not.toContain('ObjectId');
+    expect(entity).toContain('_id!: ObjectId;');
+    expect(entity).toContain("import { ObjectId } from 'mongodb';");
+    expect(entity).not.toContain('id!: string;');
     const service = tree.readContent('/users/users.service.ts');
     expect(service).toContain("from '@mikro-orm/mongodb'");
     expect(service).toContain('findOne(id: string)');
+    expect(service).toContain('findOne({ _id: new ObjectId(id) })');
     const controller = tree.readContent('/users/users.controller.ts');
     expect(controller).toContain('return this.usersService.findOne(id);');
     expect(controller).not.toContain('+id');

@@ -134,6 +134,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
     const isMikroOrm = options.orm === 'mikroorm';
     const isStringId =
       isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
+    const mikroOrmMongo = isMikroOrm && options.db === 'mongodb';
     const branch = serviceBranch(options);
     const isPasswordRoute =
       !!options.crud &&
@@ -181,6 +182,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           isDrizzle,
           isMikroOrm,
           isStringId,
+          mikroOrmMongo,
           mikroOrmDriver: mikroOrmDriver(options.db),
           isEsm: isEsmProject(tree),
           ...entityTypeOptions(options.name, options.orm),

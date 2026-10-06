@@ -2402,18 +2402,22 @@ export default defineConfig({
       );
     });
 
-    it('should use string ids and the mongodb driver', async () => {
+    it('should use an ObjectId _id primary key and the mongodb driver', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         db: 'mongodb',
         orm: 'mikroorm',
       });
       const entity = tree.readContent('/users/entities/user.entity.ts');
-      expect(entity).toContain('id!: string;');
-      expect(entity).not.toContain('ObjectId');
+      // the mongodb driver only supports an ObjectId primary key
+      expect(entity).toContain('_id!: ObjectId;');
+      expect(entity).toContain("import { ObjectId } from 'mongodb';");
+      expect(entity).not.toContain('id!: string;');
       const service = tree.readContent('/users/users.service.ts');
       expect(service).toContain("from '@mikro-orm/mongodb'");
+      expect(service).toContain("import { ObjectId } from 'mongodb';");
       expect(service).toContain('findOne(id: string)');
+      expect(service).toContain('findOne({ _id: new ObjectId(id) })');
       expect(service).not.toContain('findOne(id: number)');
       const controller = tree.readContent('/users/users.controller.ts');
       expect(controller).toContain('return this.usersService.findOne(id);');

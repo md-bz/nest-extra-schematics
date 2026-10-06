@@ -5,7 +5,9 @@ import * as argon2 from 'argon2';
 import { ChangePasswordDto } from './dto/change-password.dto<%= isEsm ? '.js' : '' %>';
 import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
-import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
+import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% if (mikroOrmMongo) { %>
+import { ObjectId } from 'mongodb';
+<% } %>
 
 function isDuplicateKey(err: unknown): boolean {
   const e = err as { code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
@@ -40,8 +42,8 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Repository.findAll();
   }
 
-  async findOne(id: <% if (isStringId) { %>string<% } else { %>number<% } %>): <%= returnOneType %> {
-    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOne({ id });
+  async findOne(id: <% if (mikroOrmMongo || isStringId) { %>string<% } else { %>number<% } %>): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOne(<% if (mikroOrmMongo) { %>{ _id: new ObjectId(id) }<% } else { %>{ id }<% } %>);
     if (!<%= lowercased(singular(classify(name))) %>) {
       throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
     }
@@ -56,7 +58,7 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Repository.findOne({ username });
   }
 
-  async update(id: <% if (isStringId) { %>string<% } else { %>number<% } %>, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
+  async update(id: <% if (mikroOrmMongo || isStringId) { %>string<% } else { %>number<% } %>, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
     try {
       const <%= lowercased(singular(classify(name))) %> = await this.findOne(id);
       this.em.assign(<%= lowercased(singular(classify(name))) %>, update<%= singular(classify(name)) %>Dto);
@@ -84,7 +86,7 @@ export class <%= classify(name) %>Service {
     return <%= lowercased(singular(classify(name))) %>;
   }
 
-  async remove(id: <% if (isStringId) { %>string<% } else { %>number<% } %>): <%= returnOneType %> {
+  async remove(id: <% if (mikroOrmMongo || isStringId) { %>string<% } else { %>number<% } %>): <%= returnOneType %> {
     const <%= lowercased(singular(classify(name))) %> = await this.findOne(id);
     await this.em.remove(<%= lowercased(singular(classify(name))) %>).flush();
     return <%= lowercased(singular(classify(name))) %>;

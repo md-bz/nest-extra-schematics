@@ -176,6 +176,7 @@ function generate(options: ResourceOptions): Source {
   const isMikroOrm = options.orm === 'mikroorm';
   const isStringId =
     isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
+  const mikroOrmMongo = isMikroOrm && options.db === 'mongodb';
   const branch = serviceBranch(options);
   const parsed = options.parsedFields!;
   return (context: SchematicContext) =>
@@ -254,6 +255,7 @@ function generate(options: ResourceOptions): Source {
         isDrizzle,
         isMikroOrm,
         isStringId,
+        mikroOrmMongo,
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...drizzleOptions(options.db),
