@@ -54,7 +54,7 @@ const validator: Record<FieldKind, string> = {
   string: 'IsString',
   text: 'IsString',
   int: 'IsInt',
-  float: 'IsFloat',
+  float: 'IsNumber',
   bool: 'IsBoolean',
   date: 'IsDate',
   json: 'IsObject',
