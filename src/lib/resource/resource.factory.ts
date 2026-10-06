@@ -45,7 +45,11 @@ import {
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { entityTypeOptions } from '../../utils/entity-type.options.js';
-import { drizzleOptions, drizzleSchemaOptions } from '../../utils/drizzle.options.js';
+import {
+  drizzleDialect,
+  drizzleOptions,
+  drizzleSchemaOptions,
+} from '../../utils/drizzle.options.js';
 import { parseFields } from '../../utils/fields.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
@@ -448,6 +452,17 @@ function addEntityToDrizzleConfigIfApplies(options: ResourceOptions): Rule {
     const configPath = 'drizzle.config.ts';
     const existing = tree.read(configPath)?.toString();
     if (existing !== undefined) {
+      // one drizzle-kit config has a single dialect, so a schema table built
+      // from a different core would be registered but never migrated
+      const wanted = drizzleDialect(options.db);
+      const found = findDrizzleDialect(existing);
+      if (found !== undefined && found !== wanted) {
+        throw new SchematicsException(
+          `Cannot add a "${wanted}" resource to ${configPath}, which is set to dialect "${found}". ` +
+            `drizzle-kit reads one dialect per config, so the table would never be migrated. ` +
+            `Use a separate project per database.`,
+        );
+      }
       const updated = appendDrizzleSchemaEntry(existing, entry);
       if (updated !== existing) {
         tree.overwrite(configPath, updated);
@@ -457,6 +472,43 @@ function addEntityToDrizzleConfigIfApplies(options: ResourceOptions): Rule {
     tree.create(configPath, createDrizzleConfig(entry, options.db));
     return tree;
   };
+}
+
+function findDrizzleDialect(content: string): string | undefined {
+  const source = createSourceFile(
+    'drizzle.config.ts',
+    content,
+    ScriptTarget.ES2017,
+    true,
+  );
+  const value = findDrizzleProperty(source, 'dialect');
+  return value?.kind === SyntaxKind.StringLiteral
+    ? (value as StringLiteral).text
+    : undefined;
+}
+
+function findDrizzleProperty(
+  source: SourceFile,
+  name: string,
+): Expression | undefined {
+  let result: Expression | undefined;
+
+  const visit = (node: Node) => {
+    if (result) return;
+
+    if (node.kind === SyntaxKind.PropertyAssignment) {
+      const property = node as PropertyAssignment;
+      if (property.name.getText(source) === name) {
+        result = property.initializer;
+        return;
+      }
+    }
+
+    node.forEachChild(visit);
+  };
+
+  visit(source);
+  return result;
 }
 
 function findDrizzleSchemaValue(source: SourceFile): Expression | undefined {
@@ -554,7 +606,7 @@ function appendDrizzleSchemaEntry(content: string, entry: string): string {
 }
 
 function createDrizzleConfig(entry: string, db: string | undefined): string {
-  const dialect = db === 'mysql' || db === 'sqlite' ? db : 'postgresql';
+  const dialect = drizzleDialect(db);
   return `import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({

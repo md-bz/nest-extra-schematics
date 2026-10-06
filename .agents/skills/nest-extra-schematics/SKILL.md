@@ -192,6 +192,9 @@ Beyond writing files, it edits existing project files. Expect and review these:
   `TypeOrmModule.forRoot({…})` and adds an `import` line to the app module.
 - **drizzle** — appends the schema path to the `schema` array in
   `drizzle.config.ts`, creating that file (with the right `dialect`) if absent.
+  Refuses when the existing config uses a different `dialect`: drizzle-kit reads
+  one dialect per config, so the table would be registered but never migrated.
+  One database per project.
 - **mikro-orm** — creates `mikro-orm.config.ts` if it does not already exist.
 - **all** — adds the ORM, its driver package, `class-validator` and
   `@nestjs/mapped-types` to `package.json` as needed, then installs.

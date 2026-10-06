@@ -38,6 +38,10 @@ export function drizzleOptions(db?: string) {
   );
 }
 
+export function drizzleDialect(db?: string): string {
+  return db === 'mysql' || db === 'sqlite' ? db : 'postgresql';
+}
+
 /**
  * Import list for the generated schema file: the table fn, the id column fn
  * and every column fn the requested fields need.

@@ -2221,6 +2221,29 @@ export default defineConfig({
       expect(tree.readContent('drizzle.config.ts')).toBe(expected);
     });
 
+    it('should refuse a schema whose dialect differs from the config', async () => {
+      const existing = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: [
+    './users/schemas/user.schema.ts',
+  ],
+  out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+`;
+      for (const db of ['sqlite', 'mysql']) {
+        const base = Tree.empty();
+        base.create('drizzle.config.ts', existing);
+        await expect(
+          runner.runSchematic('resource', { name: 'notes', orm: 'drizzle', db }, base),
+        ).rejects.toThrow(/dialect "postgresql"/);
+      }
+    });
+
     it('should not duplicate the schema entry', async () => {
       const existing = `import { defineConfig } from 'drizzle-kit';
 
