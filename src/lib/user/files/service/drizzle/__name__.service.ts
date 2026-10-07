@@ -17,11 +17,7 @@ const publicUserColumns = {
   phoneNumber: <%= plural(lowercased(name)) %>.phoneNumber,
 };
 
-function isDuplicateKey(err: unknown): boolean {
-  const e = err as { code?: string; driverError?: { code?: string }; cause?: { code?: string } };
-  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
-  return code === '23505' || code === 'ER_DUP_ENTRY' || String(code).startsWith('SQLITE_CONSTRAINT');
-}
+<%= duplicateKeyGuard %>
 
 @Injectable()
 export class <%= classify(name) %>Service {

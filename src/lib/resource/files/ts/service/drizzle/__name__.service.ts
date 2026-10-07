@@ -8,11 +8,7 @@ import { Create<%= singular(classify(name)) %>Input } from './dto/create-<%= sin
 import { Update<%= singular(classify(name)) %>Input } from './dto/update-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';<% } %>
 import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 
-function isDuplicateKey(err: unknown): boolean {
-  const e = err as { code?: string; driverError?: { code?: string }; cause?: { code?: string } };
-  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
-  return code === '23505' || code === 'ER_DUP_ENTRY' || String(code).startsWith('SQLITE_CONSTRAINT');
-}
+<%= duplicateKeyGuard %>
 
 @Injectable()
 export class <%= classify(name) %>Service {

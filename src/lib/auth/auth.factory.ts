@@ -1,5 +1,4 @@
 import { join, Path, strings } from '@angular-devkit/core';
-import { classify } from '@angular-devkit/core/src/utils/strings';
 import {
   apply,
   branchAndMerge,
@@ -29,6 +28,7 @@ import {
   isEsmProject,
   mergeSourceRoot,
 } from '../../utils/source-root.helpers.js';
+import { templateHelpers } from '../../utils/template-helpers.js';
 import { addDeclarationToModule } from '../resource/resource.factory.js';
 import { resolveOutputPaths as resolveUserOutputPaths } from '../user/user.factory.js';
 import type { AuthOptions } from './auth.schema.js';
@@ -138,12 +138,7 @@ function generate(options: AuthOptions): Source {
           options.usernameField === undefined ||
           options.usernameField === 'email' ||
           options.usernameField === 'username',
-        lowercased: (name: string) => {
-          const classifiedName = classify(name);
-          return (
-            classifiedName.charAt(0).toLowerCase() + classifiedName.slice(1)
-          );
-        },
+        ...templateHelpers,
         singular: (name: string) => pluralize.singular(name) as string,
       }),
       move(options.path!),

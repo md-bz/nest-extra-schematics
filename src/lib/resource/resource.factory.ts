@@ -42,7 +42,11 @@ import {
 } from '../../utils/dependencies.utils.js';
 import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
-import { entityTypeOptions } from '../../utils/entity-type.options.js';
+import {
+  entityTypeOptions,
+  hasOrm,
+  ormFlags,
+} from '../../utils/entity-type.options.js';
 import {
   drizzleDialect,
   drizzleOptions,
@@ -52,8 +56,10 @@ import {
   installIfNotInstalled,
   PACKAGE_JSON_PATH,
   PackageName,
+  SQL_DRIVER_PACKAGE,
 } from '../../utils/install-deps.utils.js';
 import { parseFields } from '../../utils/fields.js';
+import { templateHelpers } from '../../utils/template-helpers.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
   isServiceTemplate,
@@ -152,11 +158,7 @@ function transform(options: ResourceOptions): ResourceOptions {
     (target.db !== undefined &&
       target.db !== 'mongodb' &&
       !sqlDbs.includes(target.db)) ||
-    (target.orm !== undefined &&
-      target.orm !== 'mongoose' &&
-      target.orm !== 'typeorm' &&
-      target.orm !== 'drizzle' &&
-      target.orm !== 'mikroorm') ||
+    (target.orm !== undefined && !hasOrm(target.orm)) ||
     (target.db !== undefined &&
       sqlDbs.includes(target.db) &&
       target.orm === 'mongoose') ||
@@ -177,13 +179,8 @@ function transform(options: ResourceOptions): ResourceOptions {
 }
 
 function generate(options: ResourceOptions): Source {
-  const isMongoose = options.orm === 'mongoose';
-  const isTypeOrm = options.orm === 'typeorm';
-  const isDrizzle = options.orm === 'drizzle';
-  const isMikroOrm = options.orm === 'mikroorm';
-  const isStringId =
-    isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
-  const mikroOrmMongo = isMikroOrm && options.db === 'mongodb';
+  const { isMongoose, isTypeOrm, isDrizzle, isMikroOrm, isStringId, mikroOrmMongo } =
+    ormFlags(options.orm, options.db);
   const branch = serviceBranch(options);
   const parsed = options.parsedFields!;
   return (context: SchematicContext) =>
@@ -266,17 +263,10 @@ function generate(options: ResourceOptions): Source {
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...drizzleOptions(options.db),
-        ...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
-        lowercased: (name: string) => {
-          const classifiedName = classify(name);
-          return (
-            classifiedName.charAt(0).toLowerCase() + classifiedName.slice(1)
-          );
-        },
-        singular: (name: string) => pluralize.singular(name) as string,
-        plural: (name: string) => pluralize.plural(name) as string,
-        ent: (name: string) => name + '.entity',
-      }),
+...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
+          ...templateHelpers,
+          ent: (name: string) => name + '.entity',
+        }),
       forEach((file) => ({
         content: file.content,
         path: normalize(stripServiceBranch(file.path)),
@@ -291,10 +281,7 @@ export function addDeclarationToModule(options: ResourceOptions): Rule {
       return tree;
     }
     options.module =
-      new ModuleFinder(tree).find({
-        name: options.name,
-        path: options.path as Path,
-      }) ?? undefined;
+      new ModuleFinder(tree).find(options.path as Path) ?? undefined;
     if (!options.module) {
       return tree;
     }
@@ -497,27 +484,6 @@ function findDrizzleProperty(
   return result;
 }
 
-function findDrizzleSchemaValue(source: SourceFile): Expression | undefined {
-  let result: Expression | undefined;
-
-  const visit = (node: Node) => {
-    if (result) return;
-
-    if (node.kind === SyntaxKind.PropertyAssignment) {
-      const property = node as PropertyAssignment;
-      if (property.name.getText(source) === 'schema') {
-        result = property.initializer;
-        return;
-      }
-    }
-
-    node.forEachChild(visit);
-  };
-
-  visit(source);
-  return result;
-}
-
 function appendDrizzleSchemaEntry(content: string, entry: string): string {
   const source = createSourceFile(
     'drizzle.config.ts',
@@ -525,7 +491,7 @@ function appendDrizzleSchemaEntry(content: string, entry: string): string {
     ScriptTarget.ES2017,
     true,
   );
-  const schema = findDrizzleSchemaValue(source);
+  const schema = findDrizzleProperty(source, 'schema');
   if (!schema) {
     return content;
   }
@@ -654,17 +620,11 @@ function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
       return;
     }
     // ponytail: each db needs its own driver package alongside typeorm;
-    // transform guarantees db is set (and in this map) when orm is typeorm
-    const driverByDb: Record<string, PackageName> = {
-      mongodb: 'mongodb',
-      postgres: 'pg',
-      mysql: 'mysql2',
-      sqlite: 'better-sqlite3',
-    };
+    // transform guarantees db is set when orm is typeorm
     installIfNotInstalled(host, context, [
       '@nestjs/typeorm',
       'typeorm',
-      driverByDb[options.db!],
+      options.db === 'mongodb' ? 'mongodb' : SQL_DRIVER_PACKAGE[options.db!],
     ]);
   };
 }
@@ -675,16 +635,11 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
       return;
     }
     // ponytail: each sql db needs its own driver package alongside drizzle;
-    // transform guarantees db is set (and in this map) when orm is drizzle
-    const driverByDb: Record<string, PackageName> = {
-      postgres: 'pg',
-      sqlite: 'better-sqlite3',
-      mysql: 'mysql2',
-    };
+    // transform guarantees db is set (and in the map) when orm is drizzle
     installIfNotInstalled(host, context, [
       '@nestjs/drizzle',
       'drizzle-orm',
-      driverByDb[options.db!],
+      SQL_DRIVER_PACKAGE[options.db!],
     ]);
     installIfNotInstalled(host, context, ['drizzle-kit'], NodeDependencyType.Dev);
   };

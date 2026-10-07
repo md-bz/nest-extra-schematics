@@ -2150,6 +2150,28 @@ export class AppModule {}
       expect(service).not.toContain('.returning()');
     });
 
+    it('should emit one duplicate-key guard covering every driver', async () => {
+      for (const [db, orm] of [
+        ['postgres', 'typeorm'],
+        ['mongodb', 'mongoose'],
+        ['postgres', 'drizzle'],
+        ['postgres', 'mikroorm'],
+      ] as const) {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          db,
+          orm,
+        });
+        const service = tree.readContent('/users/users.service.ts');
+        expect(service).toContain('function isDuplicateKey(err: unknown)');
+        // postgres, mysql, sqlite and mongo unique-violation codes
+        expect(service).toContain("'23505'");
+        expect(service).toContain("'ER_DUP_ENTRY'");
+        expect(service).toContain('SQLITE_CONSTRAINT');
+        expect(service).toContain('11000');
+      }
+    });
+
     it('should add drizzle dependencies with the driver for the db', async () => {
       const base = Tree.empty();
       base.create('package.json', JSON.stringify({ name: 'app' }));

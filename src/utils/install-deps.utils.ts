@@ -50,6 +50,13 @@ export const PACKAGE_VERSIONS = {
 
 export type PackageName = keyof typeof PACKAGE_VERSIONS;
 
+/** npm driver package per sql database, shared by typeorm and drizzle. */
+export const SQL_DRIVER_PACKAGE: Record<string, PackageName> = {
+  postgres: 'pg',
+  mysql: 'mysql2',
+  sqlite: 'better-sqlite3',
+};
+
 /**
  * Adds any of `names` that the project does not already depend on, then queues
  * a single install task. Package.json absence is ignored: a schematic can run

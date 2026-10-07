@@ -9,11 +9,7 @@ import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %
 import { ObjectId } from 'mongodb';
 <% } %>
 
-function isDuplicateKey(err: unknown): boolean {
-  const e = err as { code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
-  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
-  return code === '23505' || code === 'ER_DUP_ENTRY' || code === 11000 || String(code).startsWith('SQLITE_CONSTRAINT');
-}
+<%= duplicateKeyGuard %>
 
 @Injectable()
 export class <%= classify(name) %>Service {

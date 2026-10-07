@@ -1,27 +1,17 @@
 import { join, Path, PathFragment } from '@angular-devkit/core';
 import { DirEntry, Tree } from '@angular-devkit/schematics';
 
-export interface FindOptions {
-  name?: string;
-  path: Path;
-  kind?: string;
-}
-
 export class ModuleFinder {
   constructor(private tree: Tree) {}
 
   /**
    * Finds the module file in the given path.
    *
-   * @param options - The options for finding the module, including the path.
+   * @param path - The directory to search from, walking up to the root.
    * @returns The path to the module file, or null if not found.
    */
-  public find(options: FindOptions): Path | null {
-    const generatedDirectoryPath: Path = options.path;
-    const generatedDirectory: DirEntry = this.tree.getDir(
-      generatedDirectoryPath,
-    );
-    return this.findIn(generatedDirectory);
+  public find(path: Path): Path | null {
+    return this.findIn(this.tree.getDir(path));
   }
 
   /**

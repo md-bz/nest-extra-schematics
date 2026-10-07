@@ -18,8 +18,8 @@ import { formatFiles } from '../../utils/format-files.rule.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { Location, NameParser } from '../../utils/name.parser.js';
 import { mergeSourceRoot } from '../../utils/source-root.helpers.js';
+import { templateHelpers } from '../../utils/template-helpers.js';
 import { SchematicOptions } from './schematic.schema.js';
-import { classify } from '@angular-devkit/core/src/utils/strings';
 
 export function main(options: SchematicOptions): Rule {
   options = transform(options);
@@ -64,12 +64,7 @@ function generate(options: SchematicOptions): Source {
       template({
         ...strings,
         ...options,
-        lowercased: (name: string) => {
-          const classifiedName = classify(name);
-          return (
-            classifiedName.charAt(0).toLowerCase() + classifiedName.slice(1)
-          );
-        },
+        ...templateHelpers,
       }),
       move(options.path!),
     ])(context);

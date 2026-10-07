@@ -1,14 +1,7 @@
 import { SchematicsException } from '@angular-devkit/schematics';
 
 export type FieldKind =
-  | 'string'
-  | 'text'
-  | 'int'
-  | 'float'
-  | 'bool'
-  | 'date'
-  | 'json'
-  | 'uuid';
+  'string' | 'text' | 'int' | 'float' | 'bool' | 'date' | 'json' | 'uuid';
 
 export const FIELD_KINDS: readonly FieldKind[] = [
   'string',
@@ -209,7 +202,14 @@ export interface ParsedFields {
   transformerImports: string;
   graphqlDecorators: string;
   graphqlDecoratorsAndTypes: string;
+  duplicateKeyGuard: string;
 }
+
+export const DUPLICATE_KEY_GUARD = `function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
+  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
+  return code === '23505' || code === 'ER_DUP_ENTRY' || code === 11000 || String(code).startsWith('SQLITE_CONSTRAINT');
+}`;
 
 export function parseFields(
   spec?: string,
@@ -251,21 +251,23 @@ export function parseFields(
       `  ${prop(f)}`,
     ]),
     graphqlBody: body((f) => [`  ${graphql(f)}`, `  ${prop(f)}`]),
-    sdlBody: fields
-      .map((f) => `  ${f.prop}: ${sdlType[f.kind]}${f.optional ? '' : '!'}`)
-      .join('\n') + '\n',
+    sdlBody:
+      fields
+        .map((f) => `  ${f.prop}: ${sdlType[f.kind]}${f.optional ? '' : '!'}`)
+        .join('\n') + '\n',
     entityBody: entityBody(ctx, body, prop),
     mongooseBody: mongooseBody(ctx, body, prop, graphql),
     drizzleBody: drizzleBody(fields, ctx.db),
     drizzleColumnFns: [
-      ...new Set(
-        fields.map((f) => drizzleColumnFn(ctx.db, f.kind)),
-      ),
+      ...new Set(fields.map((f) => drizzleColumnFn(ctx.db, f.kind))),
     ],
     validatorImports: [...validators].sort().join(', '),
-    transformerImports: needsTypeDecorator ? "import { Type } from 'class-transformer';" : '',
+    transformerImports: needsTypeDecorator
+      ? "import { Type } from 'class-transformer';"
+      : '',
     graphqlDecorators: graphqlImport(['ObjectType', 'Field'], fields),
     graphqlDecoratorsAndTypes: graphqlImport(['InputType', 'Field'], fields),
+    duplicateKeyGuard: DUPLICATE_KEY_GUARD,
   };
 }
 
@@ -286,16 +288,10 @@ function entityBody(
   prop: (field: Field) => string,
 ): string {
   if (ctx.orm === 'mikroorm') {
-    return body((f) => [
-      `  ${mikroDecorator(f)}`,
-      `  ${prop(f)}`,
-    ]);
+    return body((f) => [`  ${mikroDecorator(f)}`, `  ${prop(f)}`]);
   }
   if (ctx.orm === 'typeorm') {
-    return body((f) => [
-      `  ${typeormDecorator(f, ctx.db)}`,
-      `  ${prop(f)}`,
-    ]);
+    return body((f) => [`  ${typeormDecorator(f, ctx.db)}`, `  ${prop(f)}`]);
   }
   return body((f) => [`  ${prop(f)}`]);
 }
@@ -347,6 +343,7 @@ function empty(ctx: FieldContext): ParsedFields {
     transformerImports: '',
     graphqlDecorators: 'ObjectType, Field, Int',
     graphqlDecoratorsAndTypes: 'InputType, Int, Field',
+    duplicateKeyGuard: DUPLICATE_KEY_GUARD,
   };
 }
 

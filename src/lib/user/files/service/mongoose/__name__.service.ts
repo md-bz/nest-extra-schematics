@@ -7,10 +7,7 @@ import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singu
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Document } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 
-function isDuplicateKey(err: unknown): boolean {
-  const e = err as { code?: number; driverError?: { code?: number } };
-  return e?.code === 11000 || e?.driverError?.code === 11000;
-}
+<%= duplicateKeyGuard %>
 
 @Injectable()
 export class <%= classify(name) %>Service {

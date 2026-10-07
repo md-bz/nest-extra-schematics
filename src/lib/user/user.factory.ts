@@ -1,5 +1,4 @@
 import { join, normalize, Path, strings } from '@angular-devkit/core';
-import { classify } from '@angular-devkit/core/src/utils/strings';
 import {
   apply,
   chain,
@@ -18,14 +17,20 @@ import {
   url,
 } from '@angular-devkit/schematics';
 import pluralize from 'pluralize';
+import { DUPLICATE_KEY_GUARD } from '../../utils/fields.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
+import { templateHelpers } from '../../utils/template-helpers.js';
 import { installIfNotInstalled } from '../../utils/install-deps.utils.js';
 import { NameParser } from '../../utils/name.parser.js';
 import {
   isEsmProject,
   isInRootDirectory,
 } from '../../utils/source-root.helpers.js';
-import { entityTypeOptions } from '../../utils/entity-type.options.js';
+import {
+  entityTypeOptions,
+  hasOrm,
+  ormFlags,
+} from '../../utils/entity-type.options.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
@@ -63,12 +68,7 @@ export function main(options: UserOptions): Rule {
   return chain([
     schematic('resource', effective),
     overwriteUserFiles(effective),
-    effective.orm === 'mongoose' ||
-    effective.orm === 'typeorm' ||
-    effective.orm === 'drizzle' ||
-    effective.orm === 'mikroorm'
-      ? addUserDependencies()
-      : noop(),
+    hasOrm(effective.orm) ? addUserDependencies() : noop(),
   ]);
 }
 
@@ -123,17 +123,12 @@ function overwriteUserFiles(options: UserOptions): Rule {
     // ponytail: password route needs a hashing data path (mongoose doc.save()
     // hook or typeorm save()); password must never flow through
     // findByIdAndUpdate/.update(), so the update DTO drops it on both
-    const isMongoose = options.orm === 'mongoose';
-    const isTypeOrm = options.orm === 'typeorm';
-    const isDrizzle = options.orm === 'drizzle';
-    const isMikroOrm = options.orm === 'mikroorm';
-    const isStringId =
-      isMongoose || ((isTypeOrm || isMikroOrm) && options.db === 'mongodb');
-    const mikroOrmMongo = isMikroOrm && options.db === 'mongodb';
+    const { ...flags } = ormFlags(options.orm, options.db);
+    const { isMongoose, isTypeOrm, isDrizzle, isMikroOrm, hasOrm } = flags;
     const branch = serviceBranch(options);
     const isPasswordRoute =
       !!options.crud &&
-      (isMongoose || isTypeOrm || isDrizzle || isMikroOrm) &&
+      hasOrm &&
       (options.type ?? 'rest') === 'rest';
 
     if (!hasSchema && !hasEntity && !hasDto) {
@@ -161,9 +156,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
           }
           if (path.endsWith('.dto.ts')) {
             if (path.includes('/update-')) {
-              return (
-                hasDto && (isMongoose || isTypeOrm || isDrizzle || isMikroOrm)
-              );
+              return hasDto && hasOrm;
             }
             return hasDto;
           }
@@ -172,24 +165,13 @@ function overwriteUserFiles(options: UserOptions): Rule {
         template({
           ...strings,
           ...options,
-          isMongoose: options.orm === 'mongoose',
-          isTypeOrm: options.orm === 'typeorm',
-          isDrizzle,
-          isMikroOrm,
-          isStringId,
-          mikroOrmMongo,
+          ...ormFlags(options.orm, options.db),
           mikroOrmDriver: mikroOrmDriver(options.db),
           isEsm: isEsmProject(tree),
           ...entityTypeOptions(options.name, options.orm),
           ...drizzleOptions(options.db),
-          lowercased: (name: string) => {
-            const classifiedName = classify(name);
-            return (
-              classifiedName.charAt(0).toLowerCase() + classifiedName.slice(1)
-            );
-          },
-          singular: (name: string) => pluralize.singular(name) as string,
-          plural: (name: string) => pluralize.plural(name) as string,
+          ...templateHelpers,
+          duplicateKeyGuard: DUPLICATE_KEY_GUARD,
         }),
         forEach((file) => ({
           content: file.content,
