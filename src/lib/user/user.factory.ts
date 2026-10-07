@@ -58,12 +58,8 @@ export function main(options: UserOptions): Rule {
     // unset "fields" still gets asked; an empty answer skips the prompt and
     // resolves to the placeholder body that overwriteUserFiles replaces anyway
     fields: '',
-    db:
-      options.db ??
-      (options.orm === 'drizzle' || options.orm === 'mikroorm'
-        ? 'postgres'
-        : 'mongodb'),
-    orm: options.orm ?? 'mongoose',
+    db: options.db,
+    orm: options.orm,
   };
   return chain([
     schematic('resource', effective),
@@ -127,9 +123,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
     const { isMongoose, isTypeOrm, isDrizzle, isMikroOrm, hasOrm } = flags;
     const branch = serviceBranch(options);
     const isPasswordRoute =
-      !!options.crud &&
-      hasOrm &&
-      (options.type ?? 'rest') === 'rest';
+      !!options.crud && hasOrm && (options.type ?? 'rest') === 'rest';
 
     if (!hasSchema && !hasEntity && !hasDto) {
       return tree;

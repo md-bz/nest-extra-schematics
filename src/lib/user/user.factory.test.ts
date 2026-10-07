@@ -13,8 +13,11 @@ describe('User Factory', () => {
     path.join(process.cwd(), 'src/collection.json'),
   );
 
-  it('should generate a users mongoose resource by default', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', {});
+  it('should generate a users mongoose resource', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'mongoose',
+    });
     expect(tree.files).toEqual([
       '/users/users.controller.spec.ts',
       '/users/users.controller.ts',
@@ -35,7 +38,7 @@ describe('User Factory', () => {
   });
 
   it('should generate a user schema with argon2 password hashing', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', {});
+    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
     const schema = tree.readContent('/users/schemas/user.schema.ts');
     expect(schema).toContain('@Prop({ required: true, unique: true })');
     expect(schema).toContain('@Prop({ required: true, select: false })');
@@ -49,7 +52,7 @@ describe('User Factory', () => {
   });
 
   it('should generate user dtos with email and password', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', {});
+    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
     const createDto = tree.readContent('/users/dto/create-user.dto.ts');
     expect(createDto).toContain('username!: string;');
     expect(createDto).toContain('email!: string;');
@@ -67,7 +70,7 @@ describe('User Factory', () => {
   });
 
   it('should generate a change password route with current password check', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', {});
+    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
     const changeDto = tree.readContent('/users/dto/change-password.dto.ts');
     expect(changeDto).toContain('currentPassword!: string;');
     expect(changeDto).toContain('@IsStrongPassword()');
@@ -83,7 +86,7 @@ describe('User Factory', () => {
   });
 
   it('should expose email/username finders for auth login', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', {});
+    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
     const service = tree.readContent('/users/users.service.ts');
     expect(service).toContain('findByEmail(email: string)');
     expect(service).toContain('findByUsername(username: string)');
@@ -184,6 +187,8 @@ describe('User Factory', () => {
   it('should not add a password route off the rest mongoose path', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       type: 'microservice',
+      db: 'mongodb',
+      orm: 'mongoose',
     });
     const controller = tree.readContent('/users/users.controller.ts');
     const service = tree.readContent('/users/users.service.ts');
@@ -201,6 +206,8 @@ describe('User Factory', () => {
   it('should honor an explicit name', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       name: 'admins',
+      db: 'mongodb',
+      orm: 'mongoose',
     });
     expect(tree.exists('/admins/schemas/admin.schema.ts')).toBe(true);
     expect(tree.exists('/admins/entities/admin.entity.ts')).toBe(false);
@@ -245,9 +252,23 @@ describe('User Factory', () => {
     ).rejects.toThrow(/does not support the "fields" option/);
   });
 
+  it('should reject "db" without "orm", like resource does', async () => {
+    await expect(
+      runner.runSchematic('user', { db: 'postgres' }),
+    ).rejects.toThrow(/Option "db" requires "orm" as well/);
+  });
+
+  it('should reject "orm" without "db", like resource does', async () => {
+    await expect(
+      runner.runSchematic('user', { orm: 'typeorm' }),
+    ).rejects.toThrow(/Option "orm" requires "db" as well/);
+  });
+
   it('should ignore an empty "fields" option', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       fields: '',
+      db: 'mongodb',
+      orm: 'mongoose',
     } as unknown as UserOptions);
     expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
   });
@@ -268,6 +289,7 @@ describe('User Factory', () => {
 
   it('should generate a drizzle user without hooks', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'postgres',
       orm: 'drizzle',
     });
     expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
@@ -318,6 +340,7 @@ describe('User Factory', () => {
 
   it('should generate a mikroorm user with a hidden password and no hooks', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'postgres',
       orm: 'mikroorm',
     });
     expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);

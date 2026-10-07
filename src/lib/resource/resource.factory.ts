@@ -131,28 +131,14 @@ function transform(options: ResourceOptions): ResourceOptions {
   if (target.orm === 'none') {
     target.orm = undefined;
   }
-  if (target.db === 'mongodb' && target.orm === undefined) {
-    target.orm = 'mongoose';
-  }
-  if (target.orm === 'mongoose' && target.db === undefined) {
-    target.db = 'mongodb';
-  }
-  if (target.orm === 'typeorm' && target.db === undefined) {
-    target.db = 'mongodb';
-  }
-  if (target.orm === 'drizzle' && target.db === undefined) {
-    target.db = 'postgres';
-  }
-  if (target.orm === 'mikroorm' && target.db === undefined) {
-    target.db = 'postgres';
-  }
   const sqlDbs = ['sqlite', 'postgres', 'mysql'];
-  if (
-    target.db !== undefined &&
-    sqlDbs.includes(target.db) &&
-    target.orm === undefined
-  ) {
-    target.orm = 'typeorm';
+  // both or neither: half a choice has no sensible default,
+  if ((target.db === undefined) !== (target.orm === undefined)) {
+    throw new SchematicsException(
+      target.orm === undefined
+        ? `Option "db" requires "orm" as well: ${sqlDbs.includes(target.db!) ? 'use "--orm typeorm", "--orm drizzle" or "--orm mikroorm"' : 'use "--orm mongoose"'} for "--db ${target.db}".`
+        : `Option "orm" requires "db" as well: use "--orm mongoose" with "--db mongodb", or "--orm ${target.orm}" with "--db sqlite", "--db postgres" or "--db mysql".`,
+    );
   }
   if (
     (target.db !== undefined &&
@@ -179,8 +165,14 @@ function transform(options: ResourceOptions): ResourceOptions {
 }
 
 function generate(options: ResourceOptions): Source {
-  const { isMongoose, isTypeOrm, isDrizzle, isMikroOrm, isStringId, mikroOrmMongo } =
-    ormFlags(options.orm, options.db);
+  const {
+    isMongoose,
+    isTypeOrm,
+    isDrizzle,
+    isMikroOrm,
+    isStringId,
+    mikroOrmMongo,
+  } = ormFlags(options.orm, options.db);
   const branch = serviceBranch(options);
   const parsed = options.parsedFields!;
   return (context: SchematicContext) =>
@@ -263,10 +255,10 @@ function generate(options: ResourceOptions): Source {
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...drizzleOptions(options.db),
-...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
-          ...templateHelpers,
-          ent: (name: string) => name + '.entity',
-        }),
+        ...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
+        ...templateHelpers,
+        ent: (name: string) => name + '.entity',
+      }),
       forEach((file) => ({
         content: file.content,
         path: normalize(stripServiceBranch(file.path)),
@@ -641,7 +633,12 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
       'drizzle-orm',
       SQL_DRIVER_PACKAGE[options.db!],
     ]);
-    installIfNotInstalled(host, context, ['drizzle-kit'], NodeDependencyType.Dev);
+    installIfNotInstalled(
+      host,
+      context,
+      ['drizzle-kit'],
+      NodeDependencyType.Dev,
+    );
   };
 }
 
@@ -662,7 +659,10 @@ function addMikroOrmDependenciesIfApplies(options: ResourceOptions): Rule {
 
 function addMappedTypesDependencyIfApplies(options: ResourceOptions): Rule {
   return (host: Tree, context: SchematicContext) => {
-    if (options.type === 'graphql-code-first' || !host.exists(PACKAGE_JSON_PATH)) {
+    if (
+      options.type === 'graphql-code-first' ||
+      !host.exists(PACKAGE_JSON_PATH)
+    ) {
       return;
     }
     if (options.type === 'rest') {

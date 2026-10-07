@@ -1579,10 +1579,11 @@ type Mutation {
       ]);
     });
 
-    it('should default to mongoose when only "db" is given', async () => {
+    it('should generate a mongoose schema for mongodb', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         db: 'mongodb',
+        orm: 'mongoose',
       });
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(true);
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
@@ -1596,6 +1597,25 @@ type Mutation {
       });
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    });
+
+    it('should reject "db" without "orm"', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'mongodb',
+        }),
+      ).rejects.toThrow(/Option "db" requires "orm" as well/);
+    });
+
+    it('should reject a half-set "none" pair', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'none',
+          orm: 'typeorm',
+        }),
+      ).rejects.toThrow(/Option "orm" requires "db" as well/);
     });
 
     it('should wire MongooseModule, model injection and string ids', async () => {
@@ -1653,12 +1673,13 @@ type Mutation {
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
     });
 
-    it('should default to mongodb when only "orm" is given', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
-        orm: 'typeorm',
-      });
-      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    it('should reject "orm" without "db"', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          orm: 'typeorm',
+        }),
+      ).rejects.toThrow(/Option "orm" requires "db" as well/);
     });
 
     it('should wire TypeOrmModule, repository injection and string ids', async () => {
@@ -1856,10 +1877,11 @@ export class AppModule {}
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
     });
 
-    it('should default to typeorm when only "db" is given', async () => {
+    it('should wire the sqlite path', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         db: 'sqlite',
+        orm: 'typeorm',
       });
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
       expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
@@ -1949,10 +1971,11 @@ export class AppModule {}
   });
 
   describe('[REST API - TypeORM + PostgreSQL]', () => {
-    it('should default to typeorm and wire the SQL repository path', async () => {
+    it('should wire the SQL repository path', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         db: 'postgres',
+        orm: 'typeorm',
       });
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
@@ -1982,7 +2005,7 @@ export class AppModule {}
       base.create('package.json', JSON.stringify({ name: 'app' }));
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'users', db: 'postgres' },
+        { name: 'users', db: 'postgres', orm: 'typeorm' },
         base,
       );
       const pkg = JSON.parse(tree.readContent('package.json'));
@@ -1995,10 +2018,11 @@ export class AppModule {}
   });
 
   describe('[REST API - TypeORM + MySQL/MariaDB]', () => {
-    it('should default to typeorm and wire the SQL repository path', async () => {
+    it('should wire the SQL repository path', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
         db: 'mysql',
+        orm: 'typeorm',
       });
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
@@ -2028,7 +2052,7 @@ export class AppModule {}
       base.create('package.json', JSON.stringify({ name: 'app' }));
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'users', db: 'mysql' },
+        { name: 'users', db: 'mysql', orm: 'typeorm' },
         base,
       );
       const pkg = JSON.parse(tree.readContent('package.json'));
@@ -2041,9 +2065,10 @@ export class AppModule {}
   });
 
   describe('[REST API - Drizzle]', () => {
-    it('should generate a drizzle table and default to postgres', async () => {
+    it('should generate a drizzle table', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
+        db: 'postgres',
         orm: 'drizzle',
       });
       expect(tree.files).toEqual([
@@ -2192,6 +2217,7 @@ export class AppModule {}
     it('should create drizzle.config.ts with the generated schema', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
+        db: 'postgres',
         orm: 'drizzle',
       });
       const config = tree.readContent('drizzle.config.ts');
@@ -2293,7 +2319,7 @@ export default defineConfig({
       base.create('drizzle.config.ts', existing);
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'users', orm: 'drizzle' },
+        { name: 'users', db: 'postgres', orm: 'drizzle' },
         base,
       );
       expect(tree.readContent('drizzle.config.ts')).toBe(existing);
@@ -2315,7 +2341,7 @@ export default defineConfig({
       base.create('drizzle.config.ts', existing);
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'notes', orm: 'drizzle' },
+        { name: 'notes', db: 'postgres', orm: 'drizzle' },
         base,
       );
       expect(tree.readContent('drizzle.config.ts')).toContain(
@@ -2342,7 +2368,7 @@ export default defineConfig({
       base.create('drizzle.config.ts', existing);
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'notes', orm: 'drizzle' },
+        { name: 'notes', db: 'postgres', orm: 'drizzle' },
         base,
       );
       expect(tree.readContent('drizzle.config.ts')).toBe(existing);
@@ -2350,9 +2376,10 @@ export default defineConfig({
   });
 
   describe('[REST API - MikroORM]', () => {
-    it('should generate an entity and a mikro-orm.config.ts and default to postgres', async () => {
+    it('should generate an entity and a mikro-orm.config.ts', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
+        db: 'postgres',
         orm: 'mikroorm',
       });
       expect(tree.files).toEqual([
@@ -2519,6 +2546,7 @@ export default defineConfig({
     it('should skip the config file without crud', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'users',
+        db: 'postgres',
         orm: 'mikroorm',
         crud: false,
       });
@@ -2604,6 +2632,7 @@ export class Note {
     it('should generate mongoose props', async () => {
       const tree = await runner.runSchematic('resource', {
         name: 'notes',
+        db: 'mongodb',
         orm: 'mongoose',
         fields: 'title:string,views:int?',
       });

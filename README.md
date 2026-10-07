@@ -37,6 +37,12 @@ $ nest g -c nest-extra-schematics schematic schematic
 
 extended from nest schematic, has database (mongodb, sqlite, postgres, mysql/mariadb) and ORM (mongoose, typeorm, drizzle, mikroorm) integration.
 
+`db` and `orm` are prompted for independently but must be answered together —
+selecting only one throws.
+choose `none` for both to generate a plain service with no database. supported
+pairings: `mongodb` with `mongoose`, `typeorm` or `mikroorm`; `sqlite`,
+`postgres` and `mysql` with `typeorm`, `drizzle` or `mikroorm`.
+
 **usage:**
 
 ```bash
@@ -63,6 +69,8 @@ note: `date` and `json` degrade to `String` under graphql — mapping them to
 ### User
 
 extended from resource, has some basic properties for user (username, email, first/last name, phone number, password), password hashing and a route for updating password.
+
+`db` and `orm` follow the same both-or-neither rule as `resource`
 
 **usage:**
 

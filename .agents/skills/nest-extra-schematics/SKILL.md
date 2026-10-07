@@ -76,8 +76,8 @@ Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 | `--name`                                           | plural resource name                                                       | `users` for `user` |
 | `--type`                                           | `rest`, `graphql-code-first`, `graphql-schema-first`, `microservice`, `ws` | `rest`             |
 | `--crud`                                           | `true`/`false`                                                             | `true`             |
-| `--db`                                             | `none`, `mongodb`, `sqlite`, `postgres`, `mysql`                           | inferred           |
-| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`                       | inferred           |
+| `--db`                                             | `none`, `mongodb`, `sqlite`, `postgres`, `mysql`                           | none               |
+| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`                       | none               |
 | `--fields`                                         | see below (`resource` only)                                                | none               |
 | `--spec`                                           | `true`/`false`                                                             | `true`             |
 | `--flat`                                           | `true`/`false`                                                             | `false`            |
@@ -86,10 +86,12 @@ Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 `auth` takes `--name`, `--method` (`jwt` or `code`), `--username-field`
 (default `email`), plus the shared `spec`/`flat`/`path`/`skip-import`/`format`.
 
-`db` and `orm` infer each other: `mongodb` implies `mongoose`; `mongoose` implies
-`mongodb`; `drizzle`/`mikroorm` default to `postgres`; a SQL `db` with no `orm`
-implies `typeorm`. Invalid pairings throw — mongo+drizzle, or mongo+typeorm is
-fine, but sqlite+drizzle is fine while sqlite+mongoose is not.
+`db` and `orm` must be passed together or not at all — passing only one throws,
+for both `resource` and `user`.
+`none`/`none` means "no database". Unsupported pairings throw too: `mongodb`
+accepts `mongoose`, `typeorm` or `mikroorm`; `sqlite`/`postgres`/`mysql` accept
+`typeorm`, `drizzle` or `mikroorm` (so `mongodb`+`drizzle` and `sqlite`+`mongoose`
+are rejected).
 
 ## Fields
 
@@ -210,12 +212,17 @@ missing rows. Return types are concrete (`Promise<Note>`), not `any`.
   its own entity/DTO files would overwrite whatever `resource` generated. Passing
   the flag is a hard error, not a silent no-op. To add a field, generate a plain
   `resource` and add your own columns, or edit the generated user entity by hand.
+- **`user` takes no `db`/`orm` default.** Both `user` and `resource` require the
+  pair, so `--db=postgres --orm=typeorm` is needed for a typeorm user; there is
+  no implicit mongoose+mongodb.
 - **Non-interactive runs skip prompts entirely.** When stdin is not a TTY the
   prompt provider is never registered, so unanswered options fall back to schema
-  defaults and you silently get an empty `exampleField` entity. This is why
-  `nest g res notes < /dev/null` produces a bare class instead of erroring.
-- **`--db=none` / `--orm=none`** mean "no database", not "unset". They are the
-  escape hatch for generating a plain service.
+  defaults and you silently get an empty `exampleField` entity with no database.
+  This is why `nest g res notes < /dev/null` produces a bare class instead of
+  erroring.
+- **`--db=none` / `--orm=none`** mean "no database", not "unset". Pass both
+  together; `none` with a real ORM throws, since there is no database to point
+  it at.
 - **Empty fields is valid.** Answering the prompt with nothing keeps the legacy
   `exampleField` placeholder, which is what all pre-existing tests assert.
 - **JavaScript is unsupported** by `resource`; passing `language: js` throws.

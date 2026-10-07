@@ -109,8 +109,7 @@
     },
     "orm": {
       "type": "string",
-      "description": "The ORM used by the resource.",
-      "default": "mongoose",
+      "description": "The ORM used by the resource. Must be passed together with \"db\".",
       "enum": ["none", "mongoose", "typeorm", "drizzle", "mikroorm"],
       "x-prompt": {
         "message": "Which ORM do you want to use?",
