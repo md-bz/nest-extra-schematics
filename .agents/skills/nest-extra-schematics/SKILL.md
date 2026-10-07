@@ -101,6 +101,11 @@ it optional (`views?` → `views?: number` plus `@IsOptional()`).
 Types: `string`, `text`, `int`, `float`, `bool`, `date`, `json`, `uuid`.
 Aliases: `number`/`integer` → `int`, `boolean` → `bool`, `datetime` → `date`.
 
+Validators on the create DTO: `IsString`, `IsInt`, `IsNumber`, `IsBoolean`,
+`IsDate`, `IsObject`, `IsUUID`, plus `IsOptional` on any `?` field. A `date` field
+also gets `@Type(() => Date)`, and the generator adds `class-transformer` to
+`package.json` so that import resolves.
+
 `id` is reserved (primary key) and rejected. Names must be identifier-safe:
 letters, digits, underscores. camelCase names store snake_case — `publishedAt`
 becomes column `published_at`. Each field gets a blank line between property

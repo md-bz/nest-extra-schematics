@@ -51,7 +51,7 @@ const validator: Record<FieldKind, string> = {
   bool: 'IsBoolean',
   date: 'IsDate',
   json: 'IsObject',
-  uuid: 'IsString',
+  uuid: 'IsUUID',
 };
 
 // ponytail: @nestjs/graphql only re-exports Int/Float/ID; String and Boolean are
