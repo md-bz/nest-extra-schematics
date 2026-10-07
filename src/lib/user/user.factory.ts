@@ -17,14 +17,9 @@ import {
   Tree,
   url,
 } from '@angular-devkit/schematics';
-import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks/index.js';
 import pluralize from 'pluralize';
-import {
-  addPackageJsonDependency,
-  getPackageJsonDependency,
-  NodeDependencyType,
-} from '../../utils/dependencies.utils.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
+import { installIfNotInstalled } from '../../utils/install-deps.utils.js';
 import { NameParser } from '../../utils/name.parser.js';
 import {
   isEsmProject,
@@ -209,23 +204,6 @@ function overwriteUserFiles(options: UserOptions): Rule {
 
 function addUserDependencies(): Rule {
   return (host: Tree, context: SchematicContext) => {
-    try {
-      let installed = false;
-      for (const name of ['argon2', 'class-validator']) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
-    }
+    installIfNotInstalled(host, context, ['argon2', 'class-validator']);
   };
 }

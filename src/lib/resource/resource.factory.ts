@@ -17,7 +17,6 @@ import {
   Tree,
   url,
 } from '@angular-devkit/schematics';
-import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks/index.js';
 import pluralize from 'pluralize';
 import {
   ArrayLiteralExpression,
@@ -38,7 +37,6 @@ import {
   ModuleFinder,
 } from '../../index.js';
 import {
-  addPackageJsonDependency,
   getPackageJsonDependency,
   NodeDependencyType,
 } from '../../utils/dependencies.utils.js';
@@ -50,6 +48,11 @@ import {
   drizzleOptions,
   drizzleSchemaOptions,
 } from '../../utils/drizzle.options.js';
+import {
+  installIfNotInstalled,
+  PACKAGE_JSON_PATH,
+  PackageName,
+} from '../../utils/install-deps.utils.js';
 import { parseFields } from '../../utils/fields.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
@@ -318,29 +321,12 @@ function addClassValidatorDependencyIfApplies(options: ResourceOptions): Rule {
     ) {
       return;
     }
-    try {
-      let installed = false;
-      const names = ['class-validator'];
-      // @Type(() => Date) on a date field needs class-transformer to resolve
-      if (options.parsedFields?.transformerImports) {
-        names.push('class-transformer');
-      }
-      for (const name of names) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
+    const names: PackageName[] = ['class-validator'];
+    // @Type(() => Date) on a date field needs class-transformer to resolve
+    if (options.parsedFields?.transformerImports) {
+      names.push('class-transformer');
     }
+    installIfNotInstalled(host, context, names);
   };
 }
 
@@ -658,24 +644,7 @@ function addMongooseDependenciesIfApplies(options: ResourceOptions): Rule {
     if (options.orm !== 'mongoose') {
       return;
     }
-    try {
-      let installed = false;
-      for (const name of ['@nestjs/mongoose', 'mongoose']) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
-    }
+    installIfNotInstalled(host, context, ['@nestjs/mongoose', 'mongoose']);
   };
 }
 
@@ -684,33 +653,19 @@ function addTypeOrmDependenciesIfApplies(options: ResourceOptions): Rule {
     if (options.orm !== 'typeorm') {
       return;
     }
-    try {
-      let installed = false;
-      // ponytail: each db needs its own driver package alongside typeorm;
-      // transform guarantees db is set (and in this map) when orm is typeorm
-      const driverByDb: Record<string, string> = {
-        mongodb: 'mongodb',
-        postgres: 'pg',
-        mysql: 'mysql2',
-        sqlite: 'better-sqlite3',
-      };
-      const names = ['@nestjs/typeorm', 'typeorm', driverByDb[options.db!]];
-      for (const name of names) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
-    }
+    // ponytail: each db needs its own driver package alongside typeorm;
+    // transform guarantees db is set (and in this map) when orm is typeorm
+    const driverByDb: Record<string, PackageName> = {
+      mongodb: 'mongodb',
+      postgres: 'pg',
+      mysql: 'mysql2',
+      sqlite: 'better-sqlite3',
+    };
+    installIfNotInstalled(host, context, [
+      '@nestjs/typeorm',
+      'typeorm',
+      driverByDb[options.db!],
+    ]);
   };
 }
 
@@ -719,44 +674,19 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
     if (options.orm !== 'drizzle') {
       return;
     }
-    try {
-      let installed = false;
-      // ponytail: each sql db needs its own driver package alongside drizzle;
-      // transform guarantees db is set (and in this map) when orm is drizzle
-      const driverByDb: Record<string, string> = {
-        postgres: 'pg',
-        sqlite: 'better-sqlite3',
-        mysql: 'mysql2',
-      };
-      // ponytail: drizzle v1 ships under the rc tag until it hits latest
-      const deps = [
-        { name: '@nestjs/drizzle', version: '*' },
-        { name: 'drizzle-orm', version: 'rc' },
-        { name: driverByDb[options.db!], version: '*' },
-      ];
-      for (const dep of deps) {
-        if (!getPackageJsonDependency(host, dep.name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            ...dep,
-          });
-          installed = true;
-        }
-      }
-      if (!getPackageJsonDependency(host, 'drizzle-kit')) {
-        addPackageJsonDependency(host, {
-          type: NodeDependencyType.Dev,
-          name: 'drizzle-kit',
-          version: 'rc',
-        });
-        installed = true;
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
-    }
+    // ponytail: each sql db needs its own driver package alongside drizzle;
+    // transform guarantees db is set (and in this map) when orm is drizzle
+    const driverByDb: Record<string, PackageName> = {
+      postgres: 'pg',
+      sqlite: 'better-sqlite3',
+      mysql: 'mysql2',
+    };
+    installIfNotInstalled(host, context, [
+      '@nestjs/drizzle',
+      'drizzle-orm',
+      driverByDb[options.db!],
+    ]);
+    installIfNotInstalled(host, context, ['drizzle-kit'], NodeDependencyType.Dev);
   };
 }
 
@@ -765,64 +695,27 @@ function addMikroOrmDependenciesIfApplies(options: ResourceOptions): Rule {
     if (options.orm !== 'mikroorm') {
       return;
     }
-    try {
-      let installed = false;
-      // ponytail: driver package follows the db; transform guarantees db is set
-      const names = [
-        '@mikro-orm/nestjs',
-        '@mikro-orm/core',
-        '@mikro-orm/decorators',
-        `@mikro-orm/${mikroOrmDriver(options.db)}`,
-      ];
-      for (const name of names) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type: NodeDependencyType.Default,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
-    }
+    // ponytail: driver package follows the db; transform guarantees db is set
+    installIfNotInstalled(host, context, [
+      '@mikro-orm/nestjs',
+      '@mikro-orm/core',
+      '@mikro-orm/decorators',
+      `@mikro-orm/${mikroOrmDriver(options.db)}` as PackageName,
+    ]);
   };
 }
 
 function addMappedTypesDependencyIfApplies(options: ResourceOptions): Rule {
   return (host: Tree, context: SchematicContext) => {
-    try {
-      if (options.type === 'graphql-code-first') {
+    if (options.type === 'graphql-code-first' || !host.exists(PACKAGE_JSON_PATH)) {
+      return;
+    }
+    if (options.type === 'rest') {
+      if (getPackageJsonDependency(host, '@nestjs/swagger')) {
+        options.isSwaggerInstalled = true;
         return;
       }
-      if (options.type === 'rest') {
-        const nodeDependencyRef = getPackageJsonDependency(
-          host,
-          '@nestjs/swagger',
-        );
-        if (nodeDependencyRef) {
-          options.isSwaggerInstalled = true;
-          return;
-        }
-      }
-      const nodeDependencyRef = getPackageJsonDependency(
-        host,
-        '@nestjs/mapped-types',
-      );
-      if (!nodeDependencyRef) {
-        addPackageJsonDependency(host, {
-          type: NodeDependencyType.Default,
-          name: '@nestjs/mapped-types',
-          version: '*',
-        });
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
     }
+    installIfNotInstalled(host, context, ['@nestjs/mapped-types']);
   };
 }

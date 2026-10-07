@@ -80,6 +80,15 @@ describe('Resource Factory', () => {
           '/users/users.service.ts',
         ]);
       });
+
+      it('should not throw when there is no package.json', async () => {
+        const tree = await runner.runSchematic(
+          'resource',
+          { name: 'users', type: 'rest' },
+          Tree.empty(),
+        );
+        expect(tree.exists('/users/users.module.ts')).toBe(true);
+      });
     });
   });
 

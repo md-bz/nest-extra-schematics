@@ -16,14 +16,13 @@ import {
   Tree,
   url,
 } from '@angular-devkit/schematics';
-import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks/index.js';
 import pluralize from 'pluralize';
-import {
-  addPackageJsonDependency,
-  getPackageJsonDependency,
-  NodeDependencyType,
-} from '../../utils/dependencies.utils.js';
+import { NodeDependencyType } from '../../utils/dependencies.utils.js';
 import { formatFiles } from '../../utils/format-files.rule.js';
+import {
+  installIfNotInstalled,
+  PackageName,
+} from '../../utils/install-deps.utils.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { NameParser } from '../../utils/name.parser.js';
 import {
@@ -155,42 +154,20 @@ export function addAuthDependencies(options?: AuthOptions): Rule {
   // ponytail: code login has no password — skip the local/passport-local/argon2 stack
   const isCode = options?.method === 'code';
   return (host: Tree, context: SchematicContext) => {
-    try {
-      let installed = false;
-      const dependencies: Array<{
-        type: NodeDependencyType;
-        name: string;
-      }> = [
-        { type: NodeDependencyType.Default, name: '@nestjs/passport' },
-        { type: NodeDependencyType.Default, name: '@nestjs/jwt' },
-        { type: NodeDependencyType.Default, name: '@nestjs/config' },
-        { type: NodeDependencyType.Default, name: 'passport' },
-        { type: NodeDependencyType.Default, name: 'passport-jwt' },
-        { type: NodeDependencyType.Default, name: 'class-validator' },
-        { type: NodeDependencyType.Dev, name: '@types/passport-jwt' },
-      ];
-      if (!isCode) {
-        dependencies.push(
-          { type: NodeDependencyType.Default, name: 'passport-local' },
-          { type: NodeDependencyType.Default, name: 'argon2' },
-          { type: NodeDependencyType.Dev, name: '@types/passport-local' },
-        );
-      }
-      for (const { type, name } of dependencies) {
-        if (!getPackageJsonDependency(host, name)) {
-          addPackageJsonDependency(host, {
-            type,
-            name,
-            version: '*',
-          });
-          installed = true;
-        }
-      }
-      if (installed) {
-        context.addTask(new NodePackageInstallTask());
-      }
-    } catch {
-      // ignore if "package.json" not found
+    const deps: PackageName[] = [
+      '@nestjs/passport',
+      '@nestjs/jwt',
+      '@nestjs/config',
+      'passport',
+      'passport-jwt',
+      'class-validator',
+    ];
+    const devDeps: PackageName[] = ['@types/passport-jwt'];
+    if (!isCode) {
+      deps.push('passport-local', 'argon2');
+      devDeps.push('@types/passport-local');
     }
+    installIfNotInstalled(host, context, deps);
+    installIfNotInstalled(host, context, devDeps, NodeDependencyType.Dev);
   };
 }
