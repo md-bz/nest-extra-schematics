@@ -2151,7 +2151,9 @@ export class AppModule {}
       });
       const schema = tree.readContent('/users/schemas/user.schema.ts');
       expect(schema).toContain("sqliteTable('users', {");
-      expect(schema).toContain("integer('id').primaryKey({ autoIncrement: true })");
+      expect(schema).toContain(
+        "integer('id').primaryKey({ autoIncrement: true })",
+      );
       expect(tree.readContent('/users/users.service.ts')).toContain(
         'BetterSQLite3Database',
       );
@@ -2296,7 +2298,11 @@ export default defineConfig({
         const base = Tree.empty();
         base.create('drizzle.config.ts', existing);
         await expect(
-          runner.runSchematic('resource', { name: 'notes', orm: 'drizzle', db }, base),
+          runner.runSchematic(
+            'resource',
+            { name: 'notes', orm: 'drizzle', db },
+            base,
+          ),
         ).rejects.toThrow(/dialect "postgresql"/);
       }
     });

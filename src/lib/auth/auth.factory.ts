@@ -39,21 +39,18 @@ export function main(options: AuthOptions): Rule {
   return (tree: Tree, context: SchematicContext) => {
     (options as any).isEsm = isEsmProject(tree);
     return branchAndMerge(
-    chain([
-      addAuthDependencies(options),
-      mergeSourceRoot(options),
-      addDeclarationToModule(options),
-      mergeWith(generate(options)),
-      options.format === true ? formatFiles() : noop(),
-    ]),
+      chain([
+        addAuthDependencies(options),
+        mergeSourceRoot(options),
+        addDeclarationToModule(options),
+        mergeWith(generate(options)),
+        options.format === true ? formatFiles() : noop(),
+      ]),
     )(tree, context);
   };
 }
 
-export function resolveOutputPaths(
-  tree: Tree,
-  options: AuthOptions,
-): string {
+export function resolveOutputPaths(tree: Tree, options: AuthOptions): string {
   // ponytail: auth lives wherever a resource would; reuse the user path math instead of a third copy
   return resolveUserOutputPaths(tree, options).dir;
 }

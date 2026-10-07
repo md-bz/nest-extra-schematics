@@ -38,7 +38,10 @@ describe('User Factory', () => {
   });
 
   it('should generate a user schema with argon2 password hashing', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'mongoose',
+    });
     const schema = tree.readContent('/users/schemas/user.schema.ts');
     expect(schema).toContain('@Prop({ required: true, unique: true })');
     expect(schema).toContain('@Prop({ required: true, select: false })');
@@ -52,7 +55,10 @@ describe('User Factory', () => {
   });
 
   it('should generate user dtos with email and password', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'mongoose',
+    });
     const createDto = tree.readContent('/users/dto/create-user.dto.ts');
     expect(createDto).toContain('username!: string;');
     expect(createDto).toContain('email!: string;');
@@ -70,7 +76,10 @@ describe('User Factory', () => {
   });
 
   it('should generate a change password route with current password check', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'mongoose',
+    });
     const changeDto = tree.readContent('/users/dto/change-password.dto.ts');
     expect(changeDto).toContain('currentPassword!: string;');
     expect(changeDto).toContain('@IsStrongPassword()');
@@ -86,7 +95,10 @@ describe('User Factory', () => {
   });
 
   it('should expose email/username finders for auth login', async () => {
-    const tree: UnitTestTree = await runner.runSchematic('user', { db: 'mongodb', orm: 'mongoose' });
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'mongodb',
+      orm: 'mongoose',
+    });
     const service = tree.readContent('/users/users.service.ts');
     expect(service).toContain('findByEmail(email: string)');
     expect(service).toContain('findByUsername(username: string)');
@@ -105,7 +117,9 @@ describe('User Factory', () => {
     expect(entity).toContain('id!: ObjectId;');
     expect(entity).toContain('Index, ObjectIdColumn');
     expect(entity).toContain('username!: string;');
-    expect((entity.match(/@Index\(\{ unique: true \}\)/g) ?? []).length).toBe(2);
+    expect((entity.match(/@Index\(\{ unique: true \}\)/g) ?? []).length).toBe(
+      2,
+    );
     expect(entity).not.toContain('@Column({ unique: true })');
     expect(entity).toContain('@Column({ select: false })');
     expect(entity).toContain('password!: string;');
@@ -121,10 +135,16 @@ describe('User Factory', () => {
     );
     expect(service).not.toContain('findOneBy(');
     expect(service).toContain('where: { id: new ObjectId(id) }');
-    expect(service).toContain('this.userRepository.find({ select: publicSelect })');
+    expect(service).toContain(
+      'this.userRepository.find({ select: publicSelect })',
+    );
     expect((service.match(/select: publicSelect/g) ?? []).length).toBe(2);
-    expect((service.match(/\.\.\.publicSelect, password: true/g) ?? []).length).toBe(3);
-    expect((service.match(/projection: \{ password: 0 \}/g) ?? []).length).toBe(2);
+    expect(
+      (service.match(/\.\.\.publicSelect, password: true/g) ?? []).length,
+    ).toBe(3);
+    expect((service.match(/projection: \{ password: 0 \}/g) ?? []).length).toBe(
+      2,
+    );
     expect(service).toContain(
       'this.userRepository.save(this.userRepository.create(createUserDto))',
     );
@@ -137,7 +157,7 @@ describe('User Factory', () => {
       'findOneAndDelete({ _id: new ObjectId(id) }, { projection: { password: 0 } })',
     );
     expect(service).toContain(
-      "throw new NotFoundException(`User with ID ${id} not found`);",
+      'throw new NotFoundException(`User with ID ${id} not found`);',
     );
     expect(service).not.toContain('findByIdAndUpdate');
     expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
@@ -302,10 +322,14 @@ describe('User Factory', () => {
     expect(service).toContain(
       '@InjectDrizzle() private readonly db: NodePgDatabase',
     );
-    expect(service).toContain('password: await argon2.hash(createUserDto.password)');
+    expect(service).toContain(
+      'password: await argon2.hash(createUserDto.password)',
+    );
     expect(service).toContain('async changePassword(id: number,');
     expect(service).toContain('argon2.hash(changePasswordDto.password)');
-    expect(service).toContain('async findByEmail(email: string): Promise<User | null>');
+    expect(service).toContain(
+      'async findByEmail(email: string): Promise<User | null>',
+    );
     expect(service).not.toContain('this.userRepository');
     expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     expect(service).toContain('e?.cause?.code');

@@ -36,9 +36,7 @@ describe('Auth Factory', () => {
       'providers: [{ provide: AuthService, useValue: {} }]',
     );
     const serviceSpec = tree.readContent('/auth/auth.service.spec.ts');
-    expect(serviceSpec).toContain(
-      '{ provide: UsersService, useValue: {} }',
-    );
+    expect(serviceSpec).toContain('{ provide: UsersService, useValue: {} }');
     expect(serviceSpec).toContain('{ provide: JwtService, useValue: {} }');
   });
 
@@ -68,7 +66,9 @@ describe('Auth Factory', () => {
     );
     expect(module).toContain("as JwtSignOptions['expiresIn']");
     expect(module).toContain('AuthController');
-    expect(module).toContain('providers: [AuthService, LocalStrategy, JwtStrategy]');
+    expect(module).toContain(
+      'providers: [AuthService, LocalStrategy, JwtStrategy]',
+    );
     expect(module).toContain("from './strategies/jwt.strategy'");
     expect(module).toContain("from './strategies/local.strategy'");
   });
@@ -81,8 +81,12 @@ describe('Auth Factory', () => {
     );
     expect(service).toContain('findByEmail(email)');
     expect(service).toContain('argon2.verify(user.password, password)');
-    expect(service).toContain("throw new UnauthorizedException('Invalid credentials')");
-    expect(service).toContain('return { userId: user.id.toString(), email: user.email }');
+    expect(service).toContain(
+      "throw new UnauthorizedException('Invalid credentials')",
+    );
+    expect(service).toContain(
+      'return { userId: user.id.toString(), email: user.email }',
+    );
     expect(service).toContain('signAsync(payload)');
     expect(service).toContain('access_token');
   });
@@ -90,14 +94,16 @@ describe('Auth Factory', () => {
   it('should generate docs-shaped strategies, guards and routes', async () => {
     const tree: UnitTestTree = await runner.runSchematic('auth', {});
     const local = tree.readContent('/auth/strategies/local.strategy.ts');
-    expect(local).toContain("extends PassportStrategy(Strategy)");
+    expect(local).toContain('extends PassportStrategy(Strategy)');
     expect(local).toContain("usernameField: 'email'");
     expect(local).toContain('validateUser(email, password)');
     expect(local).toContain("from '../auth.service'");
     const jwt = tree.readContent('/auth/strategies/jwt.strategy.ts');
     expect(jwt).toContain('ExtractJwt.fromAuthHeaderAsBearerToken()');
     expect(jwt).toContain("getOrThrow<string>('JWT_SECRET')");
-    expect(jwt).toContain('return { userId: payload.sub, email: payload.email }');
+    expect(jwt).toContain(
+      'return { userId: payload.sub, email: payload.email }',
+    );
     expect(tree.readContent('/auth/guards/local-auth.guard.ts')).toContain(
       "extends AuthGuard('local')",
     );
@@ -223,10 +229,9 @@ describe('Auth Factory', () => {
       JSON.stringify({ name: 'app', dependencies: {} }),
     );
     const tree = new UnitTestTree(host);
-    addAuthDependencies()(
-      tree,
-      { addTask: () => {} } as unknown as SchematicContext,
-    );
+    addAuthDependencies()(tree, {
+      addTask: () => {},
+    } as unknown as SchematicContext);
     const pkg = JSON.parse(tree.readContent('/package.json').toString());
     for (const name of [
       '@nestjs/passport',
@@ -313,10 +318,9 @@ describe('Auth Factory', () => {
       JSON.stringify({ name: 'app', dependencies: {} }),
     );
     const tree = new UnitTestTree(host);
-    addAuthDependencies({ method: 'code' } as AuthOptions)(
-      tree,
-      { addTask: () => {} } as unknown as SchematicContext,
-    );
+    addAuthDependencies({ method: 'code' } as AuthOptions)(tree, {
+      addTask: () => {},
+    } as unknown as SchematicContext);
     const pkg = JSON.parse(tree.readContent('/package.json').toString());
     expect(pkg.dependencies['passport-local']).toBeUndefined();
     expect(pkg.dependencies['argon2']).toBeUndefined();

@@ -29,9 +29,7 @@ export function formatFiles(paths?: Array<string | Path>): Rule {
       tree.actions
         .filter(
           (action) =>
-            action.kind === 'c' ||
-            action.kind === 'o' ||
-            action.kind === 'r',
+            action.kind === 'c' || action.kind === 'o' || action.kind === 'r',
         )
         .map((action) => (action as { path: string }).path)
     )
