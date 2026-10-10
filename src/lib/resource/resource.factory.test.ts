@@ -2744,6 +2744,85 @@ export default defineConfig({
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(false);
     });
 
+    it('should keep a matching mikro-orm.config.ts untouched', async () => {
+      const base = Tree.empty();
+      base.create(
+        'mikro-orm.config.ts',
+        `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+import { defineConfig } from '@mikro-orm/postgresql';
+
+export default defineConfig({
+  clientUrl: process.env.DATABASE_URL!,
+  entities: ['./dist/**/*.entity.js'],
+  entitiesTs: ['./src/**/*.entity.ts'],
+  metadataProvider: ReflectMetadataProvider,
+});
+`,
+      );
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'postgres', orm: 'mikroorm' },
+        base,
+      );
+      expect(tree.readContent('mikro-orm.config.ts')).toContain(
+        "@mikro-orm/postgresql",
+      );
+      expect(tree.readContent('mikro-orm.config.ts')).not.toContain('sqlite');
+    });
+
+    it('should read the driver behind a reflection metadata provider', async () => {
+      const existing = `import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
+import { defineConfig } from '@mikro-orm/sqlite';
+
+export default defineConfig({
+  dbName: 'mikrotest.db',
+  entities: ['./dist/src/u3/entities/*.entity.js'],
+  entitiesTs: ['./src/u3/**/*.entity.ts'],
+  metadataProvider: TsMorphMetadataProvider,
+});
+`;
+      const withConfig = () => {
+        const base = Tree.empty();
+        base.create('mikro-orm.config.ts', existing);
+        return base;
+      };
+      // same driver: accepted and left alone
+      const same = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'sqlite', orm: 'mikroorm' },
+        withConfig(),
+      );
+      expect(same.readContent('mikro-orm.config.ts')).toBe(existing);
+
+      // different driver: rejected, and the message names the real driver
+      await expect(
+        runner.runSchematic(
+          'resource',
+          { name: 'users', db: 'postgres', orm: 'mikroorm' },
+          withConfig(),
+        ),
+      ).rejects.toThrow(/configured for "sqlite"/);
+    });
+
+    it('should refuse a driver that differs from mikro-orm.config.ts', async () => {      const existing = `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+import { defineConfig } from '@mikro-orm/postgresql';
+
+export default defineConfig({
+  clientUrl: process.env.DATABASE_URL!,
+  entities: ['./dist/**/*.entity.js'],
+  entitiesTs: ['./src/**/*.entity.ts'],
+  metadataProvider: ReflectMetadataProvider,
+});
+`;
+      for (const db of ['sqlite', 'mysql', 'mongodb']) {
+        const base = Tree.empty();
+        base.create('mikro-orm.config.ts', existing);
+        await expect(
+          runner.runSchematic('resource', { name: 'users', db, orm: 'mikroorm' }, base),
+        ).rejects.toThrow(/configured for "postgresql"/);
+      }
+    });
+
     it('should keep rejecting mongodb with drizzle', async () => {
       await expect(
         runner.runSchematic('resource', {

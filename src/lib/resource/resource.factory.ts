@@ -23,6 +23,7 @@ import {
   CallExpression,
   createSourceFile,
   Expression,
+  ImportDeclaration,
   Node,
   ObjectLiteralExpression,
   PropertyAssignment,
@@ -581,12 +582,62 @@ function addMikroOrmConfigIfApplies(options: ResourceOptions): Rule {
       return tree;
     }
     // ponytail: entity globs cover every future entity, so only create-if-missing
-    if (tree.exists('mikro-orm.config.ts')) {
+    const existing = tree.read('mikro-orm.config.ts')?.toString();
+    if (existing !== undefined) {
+      // one mikro-orm config drives one driver, and the entity globs sweep in
+      // every entity in the project, so a second driver would mix them
+      const wanted = mikroOrmDriver(options.db);
+      const found = findMikroOrmDriver(existing);
+      if (found !== undefined && found !== wanted) {
+        throw new SchematicsException(
+          `Cannot add a "${wanted}" resource to mikro-orm.config.ts, which is configured for "${found}". ` +
+            `That config globs every entity in the project, so mixing drivers would load incompatible ones. ` +
+            `Use a separate project per database.`,
+        );
+      }
       return tree;
     }
     tree.create('mikro-orm.config.ts', createMikroOrmConfig(options.db));
     return tree;
   };
+}
+
+function findMikroOrmDriver(content: string): string | undefined {
+  const source = createSourceFile(
+    'mikro-orm.config.ts',
+    content,
+    ScriptTarget.ES2017,
+    true,
+  );
+  let result: string | undefined;
+
+  const visit = (node: Node) => {
+    if (result) return;
+
+    if (node.kind === SyntaxKind.ImportDeclaration) {
+      const declaration = node as ImportDeclaration;
+      const specifier = declaration.moduleSpecifier;
+      const bindings = declaration.importClause?.namedBindings;
+      // the driver is whichever package supplies defineConfig; the config also
+      // imports @mikro-orm/reflection or @mikro-orm/decorators for the provider
+      if (
+        specifier.kind === SyntaxKind.StringLiteral &&
+        bindings?.kind === SyntaxKind.NamedImports &&
+        bindings.elements.some((e) => e.name.getText(source) === 'defineConfig')
+      ) {
+        const module = (specifier as StringLiteral).text;
+        if (module.startsWith('@mikro-orm/')) {
+          result = module.slice('@mikro-orm/'.length);
+          return;
+        }
+      }
+    }
+
+    node.forEachChild(visit);
+  };
+
+  visit(source);
+  return result;
 }
 
 function createMikroOrmConfig(db: string | undefined): string {

@@ -205,6 +205,9 @@ Beyond writing files, it edits existing project files. Expect and review these:
   one dialect per config, so the table would be registered but never migrated.
   One database per project.
 - **mikro-orm** — creates `mikro-orm.config.ts` if it does not already exist.
+  Refuses when an existing config uses a different driver: the `entities` globs
+  sweep in every entity in the project, so a second driver would load
+  incompatible ones. One database per project.
 - **sequelize** — appends the model class to the `models` array inside
   `SequelizeModule.forRoot({…})` and adds an `import` line to the app module.
   Only works if that call already exists; a project without it gets the feature
