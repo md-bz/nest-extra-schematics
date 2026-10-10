@@ -56,6 +56,7 @@ import {
   installIfNotInstalled,
   PACKAGE_JSON_PATH,
   PackageName,
+  sequelizeDriver,
   SQL_DRIVER_PACKAGE,
 } from '../../utils/install-deps.utils.js';
 import { parseFields } from '../../utils/fields.js';
@@ -88,6 +89,7 @@ export function main(options: ResourceOptions): Rule {
         addTypeOrmDependenciesIfApplies(options),
         addDrizzleDependenciesIfApplies(options),
         addMikroOrmDependenciesIfApplies(options),
+        addSequelizeDependenciesIfApplies(options),
         mergeSourceRoot(options),
         addDeclarationToModule(options),
         addEntityToAppModuleIfApplies(options),
@@ -140,6 +142,11 @@ function transform(options: ResourceOptions): ResourceOptions {
         : `Option "orm" requires "db" as well: use "--orm mongoose" with "--db mongodb", or "--orm ${target.orm}" with "--db sqlite", "--db postgres" or "--db mysql".`,
     );
   }
+  if (target.db === 'mongodb' && target.orm === 'sequelize') {
+    throw new SchematicsException(
+      'Sequelize does not support MongoDB. Use "--orm mongoose", "--orm typeorm" or "--orm mikroorm" for "--db mongodb", or "--orm sequelize" with "--db sqlite", "--db postgres" or "--db mysql".',
+    );
+  }
   if (
     (target.db !== undefined &&
       target.db !== 'mongodb' &&
@@ -151,7 +158,7 @@ function transform(options: ResourceOptions): ResourceOptions {
     (target.db === 'mongodb' && target.orm === 'drizzle')
   ) {
     throw new SchematicsException(
-      'Only "--db mongodb" with "--orm mongoose", "--orm typeorm" or "--orm mikroorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm", "--orm drizzle" or "--orm mikroorm" is supported for now.',
+      'Only "--db mongodb" with "--orm mongoose", "--orm typeorm" or "--orm mikroorm", or "--db sqlite"/"--db postgres"/"--db mysql" (MySQL/MariaDB) with "--orm typeorm", "--orm drizzle", "--orm mikroorm" or "--orm sequelize" is supported for now.',
     );
   }
 
@@ -170,6 +177,7 @@ function generate(options: ResourceOptions): Source {
     isTypeOrm,
     isDrizzle,
     isMikroOrm,
+    isSequelize,
     isStringId,
     mikroOrmMongo,
   } = ormFlags(options.orm, options.db);
@@ -250,6 +258,7 @@ function generate(options: ResourceOptions): Source {
         isTypeOrm,
         isDrizzle,
         isMikroOrm,
+        isSequelize,
         isStringId,
         mikroOrmMongo,
         mikroOrmDriver: mikroOrmDriver(options.db),
@@ -639,6 +648,22 @@ function addDrizzleDependenciesIfApplies(options: ResourceOptions): Rule {
       ['drizzle-kit'],
       NodeDependencyType.Dev,
     );
+  };
+}
+
+function addSequelizeDependenciesIfApplies(options: ResourceOptions): Rule {
+  return (host: Tree, context: SchematicContext) => {
+    if (options.orm !== 'sequelize') {
+      return;
+    }
+    // sequelize speaks a wire protocol per dialect through its own driver
+    // packages; sequelize-typescript carries the decorators
+    installIfNotInstalled(host, context, [
+      '@nestjs/sequelize',
+      'sequelize',
+      'sequelize-typescript',
+      sequelizeDriver(options.db),
+    ]);
   };
 }
 

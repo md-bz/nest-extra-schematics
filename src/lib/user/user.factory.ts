@@ -120,7 +120,14 @@ function overwriteUserFiles(options: UserOptions): Rule {
     // hook or typeorm save()); password must never flow through
     // findByIdAndUpdate/.update(), so the update DTO drops it on both
     const { ...flags } = ormFlags(options.orm, options.db);
-    const { isMongoose, isTypeOrm, isDrizzle, isMikroOrm, hasOrm } = flags;
+    const {
+      isMongoose,
+      isTypeOrm,
+      isDrizzle,
+      isMikroOrm,
+      isSequelize,
+      hasOrm,
+    } = flags;
     const branch = serviceBranch(options);
     const isPasswordRoute =
       !!options.crud && hasOrm && (options.type ?? 'rest') === 'rest';
@@ -140,7 +147,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
             return hasSchema && (isMongoose || isDrizzle);
           }
           if (path.includes('/entities/')) {
-            return hasEntity && (isTypeOrm || isMikroOrm);
+            return hasEntity && (isTypeOrm || isMikroOrm || isSequelize);
           }
           if (path.endsWith('change-password.dto.ts')) {
             return isPasswordRoute;

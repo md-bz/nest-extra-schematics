@@ -4,6 +4,9 @@ import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Schema 
 %><% if (isTypeOrm && crud) { %>
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% } 
+%><% if (isSequelize && crud) { %>
+import { SequelizeModule } from '@nestjs/sequelize';
+import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% } 
 %><% if (isMikroOrm && crud) { %>
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% } 
@@ -14,6 +17,7 @@ import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '
 @Module({
   <% if (isMongoose && crud) { %>imports: [MongooseModule.forFeature([{ name: <%= singular(classify(name)) %>.name, schema: <%= singular(classify(name)) %>Schema }])],
   <% } %><% if (isTypeOrm && crud) { %>imports: [TypeOrmModule.forFeature([<%= singular(classify(name)) %>])],
+  <% } %><% if (isSequelize && crud) { %>imports: [SequelizeModule.forFeature([<%= singular(classify(name)) %>])],
   <% } %><% if (isMikroOrm && crud) { %>imports: [MikroOrmModule.forFeature([<%= singular(classify(name)) %>])],
   <% } %><% if (type === 'rest' || type === 'microservice') { %>controllers: [<%= classify(name) %>Controller],
   providers: [<%= classify(name) %>Service],<% } else if (type === 'graphql-code-first' || type === 'graphql-schema-first') { %>providers: [<%= classify(name) %>Resolver, <%= classify(name) %>Service],<% } else { %>providers: [<%= classify(name) %>Gateway, <%= classify(name) %>Service],<% } %>

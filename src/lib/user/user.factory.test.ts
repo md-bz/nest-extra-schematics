@@ -382,6 +382,64 @@ describe('User Factory', () => {
     );
   });
 
+  it('should generate a sequelize user with a scoped argon2 hook', async () => {
+    const tree: UnitTestTree = await runner.runSchematic('user', {
+      db: 'postgres',
+      orm: 'sequelize',
+    });
+    expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+    expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+    const entity = tree.readContent('/users/entities/user.entity.ts');
+    // sequelize supplies the autoIncrement "id", so the model must not redeclare it
+    expect(entity).not.toContain('AutoIncrement');
+    expect(entity).not.toContain('PrimaryKey');
+    expect(entity).not.toContain('MongooseModule');
+    expect(entity).toContain(
+      "import { BeforeCreate, Column, DataType, Model, Table } from 'sequelize-typescript';",
+    );
+    expect(entity).toContain(
+      "defaultScope: { attributes: { exclude: ['password'] } }",
+    );
+    expect(entity).toContain(
+      "scopes: { withPassword: { attributes: { include: ['password'] } } }",
+    );
+    expect(entity).toContain('@Column({ type: DataType.STRING(255), unique: true })');
+    // the hook must be static, and the decorator must not be called with ()
+    expect(entity).toContain('@BeforeCreate\n');
+    expect(entity).not.toContain('@BeforeCreate()');
+    expect(entity).toContain('static async hashPassword(user: User, _options: unknown)');
+    expect(entity).toContain(
+      'user.dataValues.password = await argon2.hash(user.dataValues.password);',
+    );
+    // a password column must never be unique
+    expect(entity).not.toContain('unique: true, allowNull: false');
+
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain(
+      '@InjectModel(User) private readonly userModel: typeof User',
+    );
+    expect(service).toContain('this.userModel.findByPk(id)');
+    expect(service).toContain('this.userModel.scope(\'withPassword\').findByPk(id)');
+    expect(service).toContain('await argon2.verify(\n      user.dataValues.password,');
+    expect(service).toContain(
+      'user.dataValues.password = await argon2.hash(changePasswordDto.password);',
+    );
+    expect(service).not.toContain('await argon2.verify(\n      user.password,');
+    expect(service).toContain('findByEmail(email: string)');
+    expect(service).toContain('findByUsername(username: string)');
+    expect(service).toContain('await user.destroy()');
+    expect(service).toContain('UnauthorizedException');
+    expect(service).not.toContain('userRepository');
+
+    const module = tree.readContent('/users/users.module.ts');
+    expect(module).toContain('SequelizeModule.forFeature([User])');
+    expect(module).toContain('exports: [UsersService]');
+    expect(module).not.toContain('MongooseModule');
+
+    const controller = tree.readContent('/users/users.controller.ts');
+    expect(controller).toContain('changePassword(+id,');
+  });
+
   it('should generate a mikroorm user with a hidden password and no hooks', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       db: 'postgres',

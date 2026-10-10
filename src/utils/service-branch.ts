@@ -24,10 +24,14 @@ export function serviceBranch({
   if (orm === 'mikroorm') {
     return 'mikroorm';
   }
+  if (orm === 'sequelize') {
+    return 'sequelize';
+  }
   return null;
 }
 
-const BRANCHES = 'drizzle|typeorm-sql|typeorm-mongo|mongoose|mikroorm';
+const BRANCHES =
+  'drizzle|typeorm-sql|typeorm-mongo|mongoose|mikroorm|sequelize';
 const SERVICE_BRANCH_DIR = new RegExp(`^/service/(${BRANCHES})/`);
 const SERVICE_PREFIX = new RegExp(`^/service/(?:${BRANCHES}/)?`);
 

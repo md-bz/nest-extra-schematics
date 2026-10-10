@@ -105,6 +105,19 @@ const mikroType: Record<FieldKind, string> = {
   uuid: 'string',
 };
 
+// sequelize-typescript takes DataType constants rather than db-specific names,
+// so one map covers every dialect it supports
+const sequelizeType: Record<FieldKind, string> = {
+  string: 'DataType.STRING(255)',
+  text: 'DataType.TEXT',
+  int: 'DataType.INTEGER',
+  float: 'DataType.DOUBLE',
+  bool: 'DataType.BOOLEAN',
+  date: 'DataType.DATE',
+  json: 'DataType.JSON',
+  uuid: 'DataType.UUID',
+};
+
 const typeormColumn = {
   postgres: {
     string: { type: 'varchar', length: 255 },
@@ -206,7 +219,10 @@ export interface ParsedFields {
 }
 
 export const DUPLICATE_KEY_GUARD = `function isDuplicateKey(err: unknown): boolean {
-  const e = err as { code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
+  const e = err as { name?: string; code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
+  if (e?.name === 'SequelizeUniqueConstraintError') {
+    return true;
+  }
   const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
   return code === '23505' || code === 'ER_DUP_ENTRY' || code === 11000 || String(code).startsWith('SQLITE_CONSTRAINT');
 }`;
@@ -293,6 +309,9 @@ function entityBody(
   if (ctx.orm === 'typeorm') {
     return body((f) => [`  ${typeormDecorator(f, ctx.db)}`, `  ${prop(f)}`]);
   }
+  if (ctx.orm === 'sequelize') {
+    return body((f) => [`  ${sequelizeDecorator(f)}`, `  ${prop(f)}`]);
+  }
   return body((f) => [`  ${prop(f)}`]);
 }
 
@@ -333,7 +352,9 @@ function empty(ctx: FieldContext): ParsedFields {
     entityBody:
       ctx.orm === 'mikroorm'
         ? '  @Property()\n  exampleField!: string;\n'
-        : '  @Column()\n  exampleField!: string;\n',
+        : ctx.orm === 'sequelize'
+          ? `  @Column(${sequelizeType.string})\n  exampleField!: string;\n`
+          : '  @Column()\n  exampleField!: string;\n',
     mongooseBody:
       (isCodeFirst ? '  @Field({ nullable: true })\n' : '') +
       '  @Prop()\n  exampleField!: string;\n',
@@ -397,6 +418,18 @@ function mikroDecorator(field: Field): string {
   if (field.column !== field.prop) options.unshift(`name: '${field.column}'`);
   if (field.optional) options.push('nullable: true');
   return `@Property({ ${options.join(', ')} })`;
+}
+
+function sequelizeDecorator(field: Field): string {
+  // ponytail: sequelize takes either a bare DataType or an options object with
+  // `type` in it — a call can never mix the positional and labelled forms
+  const options: string[] = [];
+  if (field.column !== field.prop) options.push(`field: '${field.column}'`);
+  if (field.optional) options.push('allowNull: true');
+  if (!options.length) {
+    return `@Column(${sequelizeType[field.kind]})`;
+  }
+  return `@Column({ type: ${sequelizeType[field.kind]}, ${options.join(', ')} })`;
 }
 
 function typeormDecorator(field: Field, db?: string): string {

@@ -1678,6 +1678,9 @@ type Mutation {
       { db: 'postgres', orm: 'drizzle', type: 'User' },
       { db: 'postgres', orm: 'mikroorm', type: 'User' },
       { db: 'mongodb', orm: 'mikroorm', type: 'User' },
+      { db: 'postgres', orm: 'sequelize', type: 'User' },
+      { db: 'sqlite', orm: 'sequelize', type: 'User' },
+      { db: 'mysql', orm: 'sequelize', type: 'User' },
     ] as const;
 
     for (const { db, orm, type } of cases) {
@@ -2444,6 +2447,121 @@ export default defineConfig({
         base,
       );
       expect(tree.readContent('drizzle.config.ts')).toBe(existing);
+    });
+  });
+
+  describe('[REST API - Sequelize]', () => {
+    it('should generate a @Table entity extending Model', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'sequelize',
+      });
+      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
+      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+      const entity = tree.readContent('/users/entities/user.entity.ts');
+      expect(entity).toContain(
+        "import { Column, DataType, Model, Table } from 'sequelize-typescript';",
+      );
+      expect(entity).toContain('@Table');
+      expect(entity).toContain('export class User extends Model<User> {');
+      // sequelize adds the autoIncrement "id" itself, so the model omits it
+      expect(entity).not.toContain('AutoIncrement');
+      expect(entity).not.toContain('PrimaryKey');
+      // the placeholder still has to be a valid sequelize column
+      expect(entity).toContain('@Column(DataType.STRING(255))');
+    });
+
+    it('should inject the model and wire SequelizeModule', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'sequelize',
+      });
+      expect(tree.readContent('/users/users.service.ts')).toContain(
+        '@InjectModel(User) private readonly userModel: typeof User',
+      );
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        'SequelizeModule.forFeature([User])',
+      );
+      expect(tree.readContent('/users/users.module.ts')).toContain(
+        "import { SequelizeModule } from '@nestjs/sequelize';",
+      );
+      expect(tree.readContent('/users/users.module.ts')).not.toContain(
+        'TypeOrmModule',
+      );
+    });
+
+    it('should use sequelize query methods and a sequelize-aware guard', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'sequelize',
+      });
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain('this.userModel.findAll()');
+      expect(service).toContain('this.userModel.findByPk(id)');
+      expect(service).toContain('this.userModel.create(');
+      expect(service).toContain('await user.destroy()');
+      expect(service).toContain("name === 'SequelizeUniqueConstraintError'");
+      expect(service).not.toContain('userRepository');
+      expect(
+        (service.match(/new ConflictException/g) ?? []).length,
+      ).toBe(2);
+    });
+
+    it('should reject mongodb, which sequelize does not support', async () => {
+      await expect(
+        runner.runSchematic('resource', {
+          name: 'users',
+          db: 'mongodb',
+          orm: 'sequelize',
+        }),
+      ).rejects.toThrow(/Sequelize does not support MongoDB/);
+    });
+
+    it('should add sequelize dependencies and the dialect driver', async () => {
+      const withPkg = () => {
+        const base = Tree.empty();
+        base.create('package.json', JSON.stringify({ name: 'app' }));
+        return base;
+      };
+      const postgres = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'postgres', orm: 'sequelize' },
+        withPkg(),
+      );
+      const pg = JSON.parse(postgres.readContent('package.json'));
+      expect(pg.dependencies['@nestjs/sequelize']).toBeDefined();
+      expect(pg.dependencies['sequelize']).toBeDefined();
+      expect(pg.dependencies['sequelize-typescript']).toBeDefined();
+      expect(pg.dependencies['pg']).toBeDefined();
+      expect(pg.dependencies['mongodb']).toBeUndefined();
+
+      const sqlite = await runner.runSchematic(
+        'resource',
+        { name: 'items', db: 'sqlite', orm: 'sequelize' },
+        withPkg(),
+      );
+      const lite = JSON.parse(sqlite.readContent('package.json'));
+      expect(lite.dependencies['sqlite3']).toBeDefined();
+      expect(lite.dependencies['pg']).toBeUndefined();
+    });
+
+    it('should render requested fields as DataType columns', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'notes',
+        db: 'postgres',
+        orm: 'sequelize',
+        fields: 'title:string,views:int?,publishedAt:date?',
+      });
+      const entity = tree.readContent('/notes/entities/note.entity.ts');
+      expect(entity).toContain('@Column(DataType.STRING(255))');
+      expect(entity).toContain('@Column({ type: DataType.INTEGER, allowNull: true })');
+      expect(entity).toContain(
+        "@Column({ type: DataType.DATE, field: 'published_at', allowNull: true })",
+      );
+      expect(entity).not.toContain('exampleField');
     });
   });
 

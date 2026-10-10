@@ -35,13 +35,14 @@ $ nest g -c nest-extra-schematics schematic schematic
 
 ### Resource
 
-extended from nest schematic, has database (mongodb, sqlite, postgres, mysql/mariadb) and ORM (mongoose, typeorm, drizzle, mikroorm) integration.
+extended from nest schematic, has database (mongodb, sqlite, postgres, mysql/mariadb) and ORM (mongoose, typeorm, drizzle, mikroorm, sequelize) integration.
 
 `db` and `orm` are prompted for independently but must be answered together —
 selecting only one throws.
 choose `none` for both to generate a plain service with no database. supported
 pairings: `mongodb` with `mongoose`, `typeorm` or `mikroorm`; `sqlite`,
-`postgres` and `mysql` with `typeorm`, `drizzle` or `mikroorm`.
+`postgres` and `mysql` with `typeorm`, `drizzle`, `mikroorm` or `sequelize`.
+sequelize has no MongoDB support, so `--db mongodb --orm sequelize` throws.
 
 **usage:**
 

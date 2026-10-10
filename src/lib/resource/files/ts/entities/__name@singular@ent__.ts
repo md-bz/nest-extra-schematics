@@ -8,6 +8,10 @@ export class <%= singular(classify(name)) %> {
 <% } else { %>  @PrimaryKey()
   id!: number;
 <% } %>
+<%= entityBody %>}<% } else if (isSequelize) { %>import { Column, DataType, Model, Table } from 'sequelize-typescript';
+
+@Table
+export class <%= singular(classify(name)) %> extends Model<<%= singular(classify(name)) %>> {
 <%= entityBody %>}<% } else if (isTypeOrm && db !== 'mongodb') { %>import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()

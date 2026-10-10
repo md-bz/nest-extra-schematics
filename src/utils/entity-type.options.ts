@@ -1,7 +1,13 @@
 import { classify } from '@angular-devkit/core/src/utils/strings';
 import pluralize from 'pluralize';
 
-export const ORMS = ['mongoose', 'typeorm', 'drizzle', 'mikroorm'] as const;
+export const ORMS = [
+  'mongoose',
+  'typeorm',
+  'drizzle',
+  'mikroorm',
+  'sequelize',
+] as const;
 
 export type Orm = (typeof ORMS)[number];
 
@@ -16,11 +22,13 @@ export function ormFlags(orm?: string, db?: string) {
   const isTypeOrm = orm === 'typeorm';
   const isDrizzle = orm === 'drizzle';
   const isMikroOrm = orm === 'mikroorm';
+  const isSequelize = orm === 'sequelize';
   return {
     isMongoose,
     isTypeOrm,
     isDrizzle,
     isMikroOrm,
+    isSequelize,
     hasOrm,
     isStringId: isMongoose || ((isTypeOrm || isMikroOrm) && db === 'mongodb'),
     mikroOrmMongo: isMikroOrm && db === 'mongodb',

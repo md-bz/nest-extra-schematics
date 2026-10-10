@@ -1,6 +1,6 @@
 ---
 name: nest-extra-schematics
-description: 'Generate NestJS CRUD resources, user entities and auth modules with real database/ORM wiring. USE WHEN: working in a NestJS app and asked to scaffold a resource/controller/service/entity/model, add a CRUD endpoint for a table or collection, set up an ORM (mongoose, typeorm, drizzle, mikro-orm), generate a user/account entity with password hashing, add JWT or OTP login, or create a new schematic — especially when the request mentions nest-extra-schematics, `nest g -c nest-extra-schematics res`, or generating a resource with entity fields.'
+description: 'Generate NestJS CRUD resources, user entities and auth modules with real database/ORM wiring. USE WHEN: working in a NestJS app and asked to scaffold a resource/controller/service/entity/model, add a CRUD endpoint for a table or collection, set up an ORM (mongoose, typeorm, drizzle, mikro-orm, sequelize), generate a user/account entity with password hashing, add JWT or OTP login, or create a new schematic — especially when the request mentions nest-extra-schematics, `nest g -c nest-extra-schematics res`, or generating a resource with entity fields.'
 ---
 
 # nest-extra-schematics
@@ -77,7 +77,7 @@ Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 | `--type`                                           | `rest`, `graphql-code-first`, `graphql-schema-first`, `microservice`, `ws` | `rest`             |
 | `--crud`                                           | `true`/`false`                                                             | `true`             |
 | `--db`                                             | `none`, `mongodb`, `sqlite`, `postgres`, `mysql`                           | none               |
-| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`                       | none               |
+| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`, `sequelize`           | none               |
 | `--fields`                                         | see below (`resource` only)                                                | none               |
 | `--spec`                                           | `true`/`false`                                                             | `true`             |
 | `--flat`                                           | `true`/`false`                                                             | `false`            |
@@ -90,8 +90,9 @@ Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 for both `resource` and `user`.
 `none`/`none` means "no database". Unsupported pairings throw too: `mongodb`
 accepts `mongoose`, `typeorm` or `mikroorm`; `sqlite`/`postgres`/`mysql` accept
-`typeorm`, `drizzle` or `mikroorm` (so `mongodb`+`drizzle` and `sqlite`+`mongoose`
-are rejected).
+`typeorm`, `drizzle`, `mikroorm` or `sequelize` (so `mongodb`+`drizzle`,
+`sqlite`+`mongoose` and `mongodb`+`sequelize` are rejected — Sequelize has no
+MongoDB support).
 
 ## Fields
 
@@ -180,6 +181,7 @@ for free.
 | typeorm + mongodb  | `@Column()` (schemaless) |            |                             |                                  |                       |               |
 | mongoose           | `String, required`       | `Number`   | `Boolean`                   | `Date`                           | `'Mixed'`             | `String`      |
 | mikro-orm          | `type: 'string'`         | `'number'` | `'boolean'`                 | `'Date'`                         | `'json'`              | `'string'`    |
+| sequelize          | `DataType.STRING(255)`   | `DataType.INTEGER` | `DataType.BOOLEAN`  | `DataType.DATE`                  | `DataType.JSON`       | `DataType.UUID` |
 | drizzle + postgres | `text`                   | `integer`  | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`        |
 | drizzle + sqlite   | `text`                   | `integer`  | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text`        |
 | drizzle + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
@@ -203,6 +205,10 @@ Beyond writing files, it edits existing project files. Expect and review these:
   one dialect per config, so the table would be registered but never migrated.
   One database per project.
 - **mikro-orm** — creates `mikro-orm.config.ts` if it does not already exist.
+- **sequelize** — appends the model class to the `models` array inside
+  `SequelizeModule.forRoot({…})` and adds an `import` line to the app module.
+  Only works if that call already exists; a project without it gets the feature
+  module but no root registration.
 - **all** — adds the ORM, its driver package, `class-validator` and
   `@nestjs/mapped-types` to `package.json` as needed, then installs.
 

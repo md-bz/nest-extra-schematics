@@ -117,8 +117,8 @@
     },
     "orm": {
       "type": "string",
-      "description": "The ORM used by the resource.",
-      "enum": ["none", "mongoose", "typeorm", "drizzle", "mikroorm"],
+      "description": "The ORM used by the resource. Must be passed together with \"db\"; sequelize does not support mongodb.",
+      "enum": ["none", "mongoose", "typeorm", "drizzle", "mikroorm", "sequelize"],
       "x-prompt": {
         "message": "Which ORM do you want to use?",
         "type": "list",
@@ -127,7 +127,8 @@
           { "value": "mongoose", "label": "Mongoose" },
           { "value": "typeorm", "label": "TypeORM" },
           { "value": "drizzle", "label": "Drizzle" },
-          { "value": "mikroorm", "label": "MikroORM" }
+          { "value": "mikroorm", "label": "MikroORM" },
+          { "value": "sequelize", "label": "Sequelize" }
         ]
       }
     },

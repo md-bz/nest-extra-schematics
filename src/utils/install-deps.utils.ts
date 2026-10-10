@@ -28,6 +28,7 @@ export const PACKAGE_VERSIONS = {
   '@nestjs/mongoose': '*',
   '@nestjs/jwt': '*',
   '@nestjs/passport': '*',
+  '@nestjs/sequelize': '*',
   '@nestjs/typeorm': '*',
   '@types/passport-jwt': '*',
   '@types/passport-local': '*',
@@ -45,6 +46,9 @@ export const PACKAGE_VERSIONS = {
   'passport-jwt': '*',
   'passport-local': '*',
   pg: '*',
+  sequelize: '*',
+  'sequelize-typescript': '*',
+  'sqlite3': '*',
   typeorm: '*',
 } as const;
 
@@ -56,6 +60,17 @@ export const SQL_DRIVER_PACKAGE: Record<string, PackageName> = {
   mysql: 'mysql2',
   sqlite: 'better-sqlite3',
 };
+
+/** sequelize takes its dialect driver as a separate package. */
+export const SEQUELIZE_DRIVER_PACKAGE: Record<string, PackageName> = {
+  postgres: 'pg',
+  mysql: 'mysql2',
+  sqlite: 'sqlite3',
+};
+
+export function sequelizeDriver(db?: string): PackageName {
+  return SEQUELIZE_DRIVER_PACKAGE[db ?? ''] ?? 'sqlite3';
+}
 
 /**
  * Adds any of `names` that the project does not already depend on, then queues

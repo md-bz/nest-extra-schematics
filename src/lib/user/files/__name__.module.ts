@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
 <% } else if (isMikroOrm) { %>import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
+<% } else if (isSequelize) { %>import { SequelizeModule } from '@nestjs/sequelize';
+import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
 <% } else if (!isDrizzle) { %>import { MongooseModule } from '@nestjs/mongoose';
 import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Schema } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
 <% } %>import { <%= classify(name) %>Service } from './<%= name %>.service<%= isEsm ? '.js' : '' %>';
@@ -10,7 +12,7 @@ import { <%= classify(name) %>Controller } from './<%= name %>.controller<%= isE
 
 @Module({
 <% if (isDrizzle) { %>  controllers: [<%= classify(name) %>Controller],
-<% } else { %>  imports: [<% if (isTypeOrm) { %>TypeOrmModule.forFeature([<%= singular(classify(name)) %>])<% } else if (isMikroOrm) { %>MikroOrmModule.forFeature([<%= singular(classify(name)) %>])<% } else { %>MongooseModule.forFeature([{ name: <%= singular(classify(name)) %>.name, schema: <%= singular(classify(name)) %>Schema }])<% } %>],
+<% } else { %>  imports: [<% if (isTypeOrm) { %>TypeOrmModule.forFeature([<%= singular(classify(name)) %>])<% } else if (isMikroOrm) { %>MikroOrmModule.forFeature([<%= singular(classify(name)) %>])<% } else if (isSequelize) { %>SequelizeModule.forFeature([<%= singular(classify(name)) %>])<% } else { %>MongooseModule.forFeature([{ name: <%= singular(classify(name)) %>.name, schema: <%= singular(classify(name)) %>Schema }])<% } %>],
   controllers: [<%= classify(name) %>Controller],
 <% } %>  providers: [<%= classify(name) %>Service],
   exports: [<%= classify(name) %>Service],
