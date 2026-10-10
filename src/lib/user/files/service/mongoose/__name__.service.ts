@@ -29,8 +29,12 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Model.find().exec();
   }
 
-  findOne(id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Model.findById(id).exec();
+  async findOne(id: string): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Model.findById(id).exec();
+    if (!<%= lowercased(singular(classify(name))) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+    return <%= lowercased(singular(classify(name))) %>;
   }
 
   findByEmail(email: string): <%= returnNullableType %> {
@@ -68,7 +72,11 @@ export class <%= classify(name) %>Service {
     return <%= lowercased(singular(classify(name))) %>.save();
   }
 
-  remove(id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Model.findByIdAndDelete(id).exec();
+  async remove(id: string): <%= returnOneType %> {
+    const removed<%= singular(classify(name)) %> = await this.<%= lowercased(singular(classify(name))) %>Model.findByIdAndDelete(id).exec();
+    if (!removed<%= singular(classify(name)) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+    return removed<%= singular(classify(name)) %>;
   }
 }

@@ -31,11 +31,15 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Repository.find({ select: publicSelect });
   }
 
-  findOne(id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
+  async findOne(id: string): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOne({
       where: { id: new ObjectId(id) },
       select: publicSelect,
     });
+    if (!<%= lowercased(singular(classify(name))) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+    return <%= lowercased(singular(classify(name))) %> as <%= entityType %>;
   }
 
   findByEmail(email: string): <%= returnNullableType %> {

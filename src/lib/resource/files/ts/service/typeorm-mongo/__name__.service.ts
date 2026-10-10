@@ -29,8 +29,12 @@ export class <%= classify(name) %>Service {
     return this.<%= lowercased(singular(classify(name))) %>Repository.find();
   }
 
-  findOne(id: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Repository.findOneBy({ id: new ObjectId(id) });
+  async findOne(id: string): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Repository.findOneBy({ id: new ObjectId(id) });
+    if (!<%= lowercased(singular(classify(name))) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+    return <%= lowercased(singular(classify(name))) %>;
   }
 
   async update(id: string, <% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input: Update<%= singular(classify(name)) %>Input<% } %>): <%= returnOneType %> {

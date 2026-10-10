@@ -1650,6 +1650,62 @@ type Mutation {
         '+id',
       );
     });
+
+    it('should throw NotFoundException on a missing row', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'mongodb',
+        orm: 'mongoose',
+      });
+      const service = tree.readContent('/users/users.service.ts');
+      expect(
+        (service.match(/throw new NotFoundException\(`User with ID \$\{id\} not found`\);/g) ?? [])
+          .length,
+      ).toBe(3);
+      expect(service).toContain('async findOne(id: string): Promise<UserDocument>');
+      expect(service).toContain('async remove(id: string): Promise<UserDocument>');
+      expect(service).not.toContain('Promise<UserDocument | null>');
+    });
+  });
+
+  describe('[NotFoundException]', () => {
+    // every orm must guard a missing row on all three single-row routes, or a
+    // stale id silently becomes a 200 null instead of a 404
+    const cases = [
+      { db: 'mongodb', orm: 'mongoose', type: 'UserDocument' },
+      { db: 'mongodb', orm: 'typeorm', type: 'User' },
+      { db: 'postgres', orm: 'typeorm', type: 'User' },
+      { db: 'postgres', orm: 'drizzle', type: 'User' },
+      { db: 'postgres', orm: 'mikroorm', type: 'User' },
+      { db: 'mongodb', orm: 'mikroorm', type: 'User' },
+    ] as const;
+
+    for (const { db, orm, type } of cases) {
+      it(`should guard findOne, update and remove for ${orm} on ${db}`, async () => {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          db,
+          orm,
+        });
+        const service = tree.readContent('/users/users.service.ts');
+        // some orms guard at each call site, mikroorm/typeorm-sql delegate to
+        // findOne instead — either way no route may resolve to null
+        const body = (method: string) =>
+          service.slice(
+            service.search(new RegExp(`\\n  (async )?${method}\\(`)),
+          );
+        for (const method of ['findOne', 'update', 'remove']) {
+          const source = body(method);
+          expect(
+            source.includes('NotFoundException') || source.includes('this.findOne(id)'),
+            `${orm}/${db} ${method} neither throws nor delegates`,
+          ).toBe(true);
+        }
+        expect(service).toContain(`async findOne(`);
+        expect(service).toContain(`Promise<${type}>`);
+        expect(service).not.toContain(`Promise<${type} | null>`);
+      });
+    }
   });
 
   describe('[REST API - TypeORM]', () => {
@@ -1712,8 +1768,18 @@ type Mutation {
       expect(tree.readContent('/users/users.service.ts')).toContain(
         'findOneAndDelete({ _id: new ObjectId(id) })',
       );
+      // findOne, update and remove all guard a missing row
+      expect(
+        (
+          tree
+            .readContent('/users/users.service.ts')
+            .match(
+              /throw new NotFoundException\(`User with ID \$\{id\} not found`\);/g,
+            ) ?? []
+        ).length,
+      ).toBe(3);
       expect(tree.readContent('/users/users.service.ts')).toContain(
-        'throw new NotFoundException(`User with ID ${id} not found`);',
+        'async findOne(id: string): Promise<User>',
       );
       expect(tree.readContent('/users/users.service.ts')).not.toContain(
         '.update(',

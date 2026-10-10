@@ -105,6 +105,26 @@ describe('User Factory', () => {
     expect(service).toContain("select('+password')");
   });
 
+  it('should throw NotFoundException on findOne for every orm', async () => {
+    for (const orm of ['mongoose', 'typeorm', 'drizzle', 'mikroorm']) {
+      const db = orm === 'mongoose' || orm === 'mikroorm' ? 'mongodb' : 'postgres';
+      const tree: UnitTestTree = await runner.runSchematic('user', {
+        db,
+        orm,
+      });
+      const service = tree.readContent('/users/users.service.ts');
+      expect(service).toContain(
+        'throw new NotFoundException(`User with ID ${id} not found`);',
+      );
+      // findOne is guarded and non-nullable, but the login finders deliberately
+      // stay nullable so auth can tell "no such user" from a bad password
+      expect(service).toContain('async findOne(');
+      expect(service).toMatch(
+        /findByEmail\(email: string\): Promise<\w+ \| null>/,
+      );
+    }
+  });
+
   it('should generate a typeorm user resource with entity instead of schema', async () => {
     const tree: UnitTestTree = await runner.runSchematic('user', {
       db: 'mongodb',
