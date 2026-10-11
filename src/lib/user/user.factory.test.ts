@@ -395,7 +395,7 @@ describe('User Factory', () => {
     expect(entity).not.toContain('PrimaryKey');
     expect(entity).not.toContain('MongooseModule');
     expect(entity).toContain(
-      "import { BeforeCreate, Column, DataType, Model, Table } from 'sequelize-typescript';",
+      "import { BeforeCreate, BeforeUpdate, Column, DataType, Model, Table } from 'sequelize-typescript';",
     );
     expect(entity).toContain(
       "defaultScope: { attributes: { exclude: ['password'] } }",
@@ -415,6 +415,11 @@ describe('User Factory', () => {
     expect(entity).toContain(
       'user.dataValues.password = await argon2.hash(user.dataValues.password);',
     );
+    // updates hash only when the password actually changed
+    expect(entity).toContain("import { BeforeCreate, BeforeUpdate, Column, DataType, Model, Table } from 'sequelize-typescript';");
+    expect(entity).toContain('static async hashPasswordOnUpdate(user: User) {');
+    expect(entity).toContain("if (user.changed('password')) {");
+    expect(entity).toContain('user.password = await argon2.hash(user.password);');
     // a password column must never be unique
     expect(entity).not.toContain('unique: true, allowNull: false');
 
@@ -425,9 +430,9 @@ describe('User Factory', () => {
     expect(service).toContain('this.userModel.findByPk(id)');
     expect(service).toContain('this.userModel.scope(\'withPassword\').findByPk(id)');
     expect(service).toContain('await argon2.verify(\n      user.dataValues.password,');
-    expect(service).toContain(
-      'user.dataValues.password = await argon2.hash(changePasswordDto.password);',
-    );
+    // the service assigns plaintext; @BeforeUpdate does the hashing
+    expect(service).toContain('user.password = changePasswordDto.password;');
+    expect(service).not.toContain('argon2.hash(changePasswordDto.password)');
     expect(service).not.toContain('await argon2.verify(\n      user.password,');
     expect(service).toContain('findByEmail(email: string)');
     expect(service).toContain('findByUsername(username: string)');

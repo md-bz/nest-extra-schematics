@@ -27,7 +27,7 @@ export class <%= singular(classify(name)) %> {
   @Property({ hidden: true })
   password!: string;
 }<% } else if (isSequelize) { %>import * as argon2 from 'argon2';
-import { BeforeCreate, Column, DataType, Model, Table } from 'sequelize-typescript';
+import { BeforeCreate, BeforeUpdate, Column, DataType, Model, Table } from 'sequelize-typescript';
 
 @Table({
   defaultScope: { attributes: { exclude: ['password'] } },
@@ -55,6 +55,13 @@ export class <%= singular(classify(name)) %> extends Model<<%= singular(classify
   @BeforeCreate
   static async hashPassword(<%= lowercased(singular(classify(name))) %>: <%= singular(classify(name)) %>, _options: unknown) {
     <%= lowercased(singular(classify(name))) %>.dataValues.password = await argon2.hash(<%= lowercased(singular(classify(name))) %>.dataValues.password);
+  }
+
+  @BeforeUpdate
+  static async hashPasswordOnUpdate(<%= lowercased(singular(classify(name))) %>: <%= singular(classify(name)) %>) {
+    if (<%= lowercased(singular(classify(name))) %>.changed('password')) {
+      <%= lowercased(singular(classify(name))) %>.password = await argon2.hash(<%= lowercased(singular(classify(name))) %>.password);
+    }
   }
 }<% } else { %><% if (type === 'graphql-code-first') { %>import { ObjectType, Field, <% if (db === 'mongodb') { %>ID<% } else { %>Int<% } %> } from '@nestjs/graphql';
 <% } %>import * as argon2 from 'argon2';

@@ -70,7 +70,7 @@ export class <%= classify(name) %>Service {
     if (!isCurrentPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
-    <%= lowercased(singular(classify(name))) %>.dataValues.password = await argon2.hash(changePasswordDto.password);
+    <%= lowercased(singular(classify(name))) %>.password = changePasswordDto.password;
     return <%= lowercased(singular(classify(name))) %>.save();
   }
 
