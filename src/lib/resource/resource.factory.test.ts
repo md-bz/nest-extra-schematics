@@ -2561,6 +2561,11 @@ export default defineConfig({
       expect(entity).toContain(
         "@Column({ type: DataType.DATE, field: 'published_at', allowNull: true })",
       );
+      // `declare` keeps sequelize's prototype accessors from being shadowed
+      expect(entity).toContain('declare title: string;');
+      expect(entity).toContain('declare views?: number;');
+      expect(entity).toContain('declare publishedAt?: Date;');
+      expect(entity).not.toMatch(/^ {2}\w+[!?]?: [^;\n]*;$/m);
       expect(entity).not.toContain('exampleField');
     });
   });

@@ -247,6 +247,11 @@ export function parseFields(
 
   const prop = (field: Field) =>
     `${field.prop}${field.optional ? '?' : '!'}: ${field.tsType};`;
+  // sequelize installs attribute getters/setters on the prototype, so a real
+  // class field would shadow them and break saving; `declare` also rules out
+  // the definite assignment assertion, so optionality is marked with `?`
+  const declareProp = (field: Field) =>
+    `declare ${field.prop}${field.optional ? '?' : ''}: ${field.tsType};`;
   const graphql = (field: Field) =>
     `@Field(() => ${graphqlType[field.kind]}${field.optional ? ', { nullable: true }' : ''})`;
 
@@ -271,7 +276,7 @@ export function parseFields(
       fields
         .map((f) => `  ${f.prop}: ${sdlType[f.kind]}${f.optional ? '' : '!'}`)
         .join('\n') + '\n',
-    entityBody: entityBody(ctx, body, prop),
+    entityBody: entityBody(ctx, body, prop, declareProp),
     mongooseBody: mongooseBody(ctx, body, prop, graphql),
     drizzleBody: drizzleBody(fields, ctx.db),
     drizzleColumnFns: [
@@ -302,6 +307,7 @@ function entityBody(
   ctx: FieldContext,
   body: (render: (field: Field) => string[]) => string,
   prop: (field: Field) => string,
+  declareProp: (field: Field) => string,
 ): string {
   if (ctx.orm === 'mikroorm') {
     return body((f) => [`  ${mikroDecorator(f)}`, `  ${prop(f)}`]);
@@ -310,7 +316,7 @@ function entityBody(
     return body((f) => [`  ${typeormDecorator(f, ctx.db)}`, `  ${prop(f)}`]);
   }
   if (ctx.orm === 'sequelize') {
-    return body((f) => [`  ${sequelizeDecorator(f)}`, `  ${prop(f)}`]);
+    return body((f) => [`  ${sequelizeDecorator(f)}`, `  ${declareProp(f)}`]);
   }
   return body((f) => [`  ${prop(f)}`]);
 }
@@ -353,7 +359,7 @@ function empty(ctx: FieldContext): ParsedFields {
       ctx.orm === 'mikroorm'
         ? '  @Property()\n  exampleField!: string;\n'
         : ctx.orm === 'sequelize'
-          ? `  @Column(${sequelizeType.string})\n  exampleField!: string;\n`
+          ? `  @Column(${sequelizeType.string})\n  declare exampleField: string;\n`
           : '  @Column()\n  exampleField!: string;\n',
     mongooseBody:
       (isCodeFirst ? '  @Field({ nullable: true })\n' : '') +

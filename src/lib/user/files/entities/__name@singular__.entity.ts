@@ -35,22 +35,22 @@ import { BeforeCreate, Column, DataType, Model, Table } from 'sequelize-typescri
 })
 export class <%= singular(classify(name)) %> extends Model<<%= singular(classify(name)) %>> {
   @Column({ type: DataType.STRING(255), unique: true })
-  username!: string;
+  declare username: string;
 
   @Column({ type: DataType.STRING(255), unique: true })
-  email!: string;
+  declare email: string;
 
   @Column({ type: DataType.STRING(255) })
-  firstName!: string;
+  declare firstName: string;
 
   @Column({ type: DataType.STRING(255) })
-  lastName!: string;
+  declare lastName: string;
 
   @Column({ type: DataType.STRING(255) })
-  phoneNumber!: string;
+  declare phoneNumber: string;
 
   @Column({ type: DataType.STRING, allowNull: false })
-  password!: string;
+  declare password: string;
 
   @BeforeCreate
   static async hashPassword(<%= lowercased(singular(classify(name))) %>: <%= singular(classify(name)) %>, _options: unknown) {

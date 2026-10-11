@@ -404,6 +404,10 @@ describe('User Factory', () => {
       "scopes: { withPassword: { attributes: { include: ['password'] } } }",
     );
     expect(entity).toContain('@Column({ type: DataType.STRING(255), unique: true })');
+    // `declare` keeps sequelize's prototype accessors from being shadowed
+    expect(entity).toContain('declare username: string;');
+    expect(entity).toContain('declare password: string;');
+    expect(entity).not.toMatch(/^ {2}\w+[!?]?: [^;\n]*;$/m);
     // the hook must be static, and the decorator must not be called with ()
     expect(entity).toContain('@BeforeCreate\n');
     expect(entity).not.toContain('@BeforeCreate()');
