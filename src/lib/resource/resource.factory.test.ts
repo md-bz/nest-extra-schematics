@@ -2278,11 +2278,11 @@ export class AppModule {}
       );
       const pkg = JSON.parse(tree.readContent('package.json'));
       expect(pkg.dependencies['@nestjs/drizzle']).toBeDefined();
-      expect(pkg.dependencies['drizzle-orm']).toBe('rc');
+      expect(pkg.dependencies['drizzle-orm']).toBe('1.0.0-rc.4');
       expect(pkg.dependencies['pg']).toBeDefined();
       expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
       expect(pkg.dependencies['mongoose']).toBeUndefined();
-      expect(pkg.devDependencies['drizzle-kit']).toBe('rc');
+      expect(pkg.devDependencies['drizzle-kit']).toBe('1.0.0-rc.4');
     });
 
     it('should create drizzle.config.ts with the generated schema', async () => {
