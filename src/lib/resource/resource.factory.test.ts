@@ -14,85 +14,6 @@ describe('Resource Factory', () => {
   );
 
   describe('[REST API]', () => {
-    it('should generate appropriate files ', async () => {
-      const options: ResourceOptions = {
-        name: 'users',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/users/users.controller.spec.ts',
-        '/users/users.controller.ts',
-        '/users/users.module.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.dto.ts',
-        '/users/dto/update-user.dto.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-    });
-    it("should keep underscores in resource's path and file name", async () => {
-      const options: ResourceOptions = {
-        name: '_users',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/_users/_users.controller.spec.ts',
-        '/_users/_users.controller.ts',
-        '/_users/_users.module.ts',
-        '/_users/_users.service.spec.ts',
-        '/_users/_users.service.ts',
-        '/_users/dto/create-_user.dto.ts',
-        '/_users/dto/update-_user.dto.ts',
-        '/_users/entities/_user.entity.ts',
-      ]);
-    });
-    describe('when "crud" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          crud: false,
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.controller.spec.ts',
-          '/users/users.controller.ts',
-          '/users/users.module.ts',
-          '/users/users.service.spec.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-    describe('when "spec" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          spec: false,
-          crud: false,
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.controller.ts',
-          '/users/users.module.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-
-      it('should not throw when there is no package.json', async () => {
-        const tree = await runner.runSchematic(
-          'resource',
-          { name: 'users', type: 'rest' },
-          Tree.empty(),
-        );
-        expect(tree.exists('/users/users.module.ts')).toBe(true);
-      });
-    });
-  });
-
-  describe('[REST API]', () => {
     const options: ResourceOptions = {
       name: 'users',
       isSwaggerInstalled: true,
@@ -322,62 +243,6 @@ export class UsersModule {}
 
     it('should not generate "UpdateUserDto" class', () => {
       expect(tree.readContent('/users/dto/update-user.dto.ts')).toEqual('');
-    });
-  });
-
-  describe('[Microservice]', () => {
-    it('should generate appropriate files ', async () => {
-      const options: ResourceOptions = {
-        name: 'users',
-        type: 'microservice',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/users/users.controller.spec.ts',
-        '/users/users.controller.ts',
-        '/users/users.module.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.dto.ts',
-        '/users/dto/update-user.dto.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-    });
-    describe('when "crud" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          crud: false,
-          type: 'microservice',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.controller.spec.ts',
-          '/users/users.controller.ts',
-          '/users/users.module.ts',
-          '/users/users.service.spec.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-    describe('when "spec" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          spec: false,
-          crud: false,
-          type: 'microservice',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.controller.ts',
-          '/users/users.module.ts',
-          '/users/users.service.ts',
-        ]);
-      });
     });
   });
 
@@ -619,62 +484,6 @@ export class UsersModule {}
   });
 
   describe('[WebSockets]', () => {
-    it('should generate appropriate files ', async () => {
-      const options: ResourceOptions = {
-        name: 'users',
-        type: 'ws',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/users/users.gateway.spec.ts',
-        '/users/users.gateway.ts',
-        '/users/users.module.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.dto.ts',
-        '/users/dto/update-user.dto.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-    });
-    describe('when "crud" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          crud: false,
-          type: 'ws',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.gateway.spec.ts',
-          '/users/users.gateway.ts',
-          '/users/users.module.ts',
-          '/users/users.service.spec.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-    describe('when "spec" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          spec: false,
-          crud: false,
-          type: 'ws',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.gateway.ts',
-          '/users/users.module.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-  });
-
-  describe('[WebSockets]', () => {
     const options: ResourceOptions = {
       name: 'users',
       crud: true,
@@ -907,62 +716,6 @@ export class UsersModule {}
   });
 
   describe('[GraphQL - Code first]', () => {
-    it('should generate appropriate files ', async () => {
-      const options: ResourceOptions = {
-        name: 'users',
-        crud: true,
-        type: 'graphql-code-first',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/users/users.module.ts',
-        '/users/users.resolver.spec.ts',
-        '/users/users.resolver.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.input.ts',
-        '/users/dto/update-user.input.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-    });
-    describe('when "crud" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          crud: false,
-          type: 'graphql-code-first',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.module.ts',
-          '/users/users.resolver.spec.ts',
-          '/users/users.resolver.ts',
-          '/users/users.service.spec.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-    describe('when "spec" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          spec: false,
-          crud: false,
-          type: 'graphql-code-first',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.module.ts',
-          '/users/users.resolver.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-  });
-  describe('[GraphQL - Code first]', () => {
     const options: ResourceOptions = {
       name: 'users',
       crud: true,
@@ -1144,62 +897,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('[GraphQL - Schema first]', () => {
-    it('should generate appropriate files ', async () => {
-      const options: ResourceOptions = {
-        name: 'users',
-        type: 'graphql-schema-first',
-      };
-      const tree = await runner.runSchematic('resource', options);
-      const files = tree.files;
-      expect(files).toEqual([
-        '/users/users.graphql',
-        '/users/users.module.ts',
-        '/users/users.resolver.spec.ts',
-        '/users/users.resolver.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.input.ts',
-        '/users/dto/update-user.input.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-    });
-    describe('when "crud" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          crud: false,
-          type: 'graphql-schema-first',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.module.ts',
-          '/users/users.resolver.spec.ts',
-          '/users/users.resolver.ts',
-          '/users/users.service.spec.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-    describe('when "spec" option is not enabled', () => {
-      it('should generate appropriate files (without dtos)', async () => {
-        const options: ResourceOptions = {
-          name: 'users',
-          spec: false,
-          crud: false,
-          type: 'graphql-schema-first',
-        };
-        const tree = await runner.runSchematic('resource', options);
-        const files = tree.files;
-        expect(files).toEqual([
-          '/users/users.module.ts',
-          '/users/users.resolver.ts',
-          '/users/users.service.ts',
-        ]);
-      });
-    });
-  });
   describe('[GraphQL - Schema first]', () => {
     const options: ResourceOptions = {
       name: 'users',
@@ -1559,6 +1256,151 @@ type Mutation {
     );
   });
 
+  describe('[file layout]', () => {
+    // every transport lays out the same five slots; only the transport's own
+    // class name and the dto/input extension differ
+    const transports: Array<{
+      label: string;
+      type: string;
+      kind: string;
+      dto: string;
+      extra?: string[];
+    }> = [
+      { label: 'REST API', type: 'rest', kind: 'controller', dto: 'dto' },
+      {
+        label: 'Microservice',
+        type: 'microservice',
+        kind: 'controller',
+        dto: 'dto',
+      },
+      { label: 'WebSockets', type: 'ws', kind: 'gateway', dto: 'dto' },
+      {
+        label: 'GraphQL - Code first',
+        type: 'graphql-code-first',
+        kind: 'resolver',
+        dto: 'input',
+      },
+      {
+        label: 'GraphQL - Schema first',
+        type: 'graphql-schema-first',
+        kind: 'resolver',
+        dto: 'input',
+        // the SDL file only appears with crud enabled
+        extra: ['/users/users.graphql'],
+      },
+    ];
+
+    const sorted = (files: string[]) => [...files].sort();
+
+    for (const { label, type, kind, dto, extra } of transports) {
+      it(`should generate the full set for ${label}`, async () => {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          type,
+        });
+        expect(sorted(tree.files)).toEqual(
+          sorted([
+            `/users/users.${kind}.spec.ts`,
+            `/users/users.${kind}.ts`,
+            '/users/users.module.ts',
+            '/users/users.service.spec.ts',
+            '/users/users.service.ts',
+            `/users/dto/create-user.${dto}.ts`,
+            `/users/dto/update-user.${dto}.ts`,
+            '/users/entities/user.entity.ts',
+            ...(extra ?? []),
+          ]),
+        );
+      });
+
+      it(`should omit the dtos for ${label} without crud`, async () => {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          type,
+          crud: false,
+        });
+        expect(sorted(tree.files)).toEqual(
+          sorted([
+            `/users/users.${kind}.spec.ts`,
+            `/users/users.${kind}.ts`,
+            '/users/users.module.ts',
+            '/users/users.service.spec.ts',
+            '/users/users.service.ts',
+          ]),
+        );
+      });
+
+      it(`should omit the specs too for ${label} without crud or spec`, async () => {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          type,
+          crud: false,
+          spec: false,
+        });
+        expect(sorted(tree.files)).toEqual(
+          sorted([
+            `/users/users.${kind}.ts`,
+            '/users/users.module.ts',
+            '/users/users.service.ts',
+          ]),
+        );
+      });
+    }
+
+    it("should keep underscores in the resource's path and file name", async () => {
+      const tree = await runner.runSchematic('resource', { name: '_users' });
+      expect(sorted(tree.files)).toEqual(
+        sorted([
+          '/_users/_users.controller.spec.ts',
+          '/_users/_users.controller.ts',
+          '/_users/_users.module.ts',
+          '/_users/_users.service.spec.ts',
+          '/_users/_users.service.ts',
+          '/_users/dto/create-_user.dto.ts',
+          '/_users/dto/update-_user.dto.ts',
+          '/_users/entities/_user.entity.ts',
+        ]),
+      );
+    });
+
+    it('should not throw when there is no package.json', async () => {
+      const tree = await runner.runSchematic(
+        'resource',
+        { name: 'users', type: 'rest' },
+        Tree.empty(),
+      );
+      expect(tree.exists('/users/users.module.ts')).toBe(true);
+    });
+  });
+
+  describe('[db + orm pairing]', () => {
+    // which (db, orm) combinations are refused, and why: pairing is a property
+    // of the db/orm combination, not of either one on its own
+    const rejected: Array<[Partial<ResourceOptions>, RegExp]> = [
+      [{ db: 'mongodb' }, /Option "db" requires "orm" as well/],
+      [{ orm: 'typeorm' }, /Option "orm" requires "db" as well/],
+      [{ db: 'none', orm: 'typeorm' }, /Option "orm" requires "db" as well/],
+      [{ db: 'sqlite', orm: 'mongoose' }, /supported for now/],
+      [{ db: 'postgres', orm: 'mongoose' }, /supported for now/],
+      [{ db: 'mysql', orm: 'mongoose' }, /supported for now/],
+      [{ db: 'mongodb', orm: 'drizzle' }, /supported for now/],
+      [
+        { db: 'mongodb', orm: 'sequelize' },
+        /Sequelize does not support MongoDB/,
+      ],
+    ];
+
+    for (const [options, message] of rejected) {
+      const db = 'db' in options ? options.db : undefined;
+      const orm = 'orm' in options ? options.orm : undefined;
+      it(`should reject ${db ?? orm}${db && orm ? ` + ${orm}` : ''}`, async () => {
+        await expect(
+          runner.runSchematic('resource', { name: 'users', ...options }),
+        ).rejects.toThrow(message);
+      });
+    }
+  });
+
   describe('[REST API - Mongoose]', () => {
     it('should generate schema file instead of entity', async () => {
       const options: ResourceOptions = {
@@ -1597,25 +1439,6 @@ type Mutation {
       });
       expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-    });
-
-    it('should reject "db" without "orm"', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'mongodb',
-        }),
-      ).rejects.toThrow(/Option "db" requires "orm" as well/);
-    });
-
-    it('should reject a half-set "none" pair', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'none',
-          orm: 'typeorm',
-        }),
-      ).rejects.toThrow(/Option "orm" requires "db" as well/);
     });
 
     it('should wire MongooseModule, model injection and string ids', async () => {
@@ -1659,11 +1482,18 @@ type Mutation {
       });
       const service = tree.readContent('/users/users.service.ts');
       expect(
-        (service.match(/throw new NotFoundException\(`User with ID \$\{id\} not found`\);/g) ?? [])
-          .length,
+        (
+          service.match(
+            /throw new NotFoundException\(`User with ID \$\{id\} not found`\);/g,
+          ) ?? []
+        ).length,
       ).toBe(3);
-      expect(service).toContain('async findOne(id: string): Promise<UserDocument>');
-      expect(service).toContain('async remove(id: string): Promise<UserDocument>');
+      expect(service).toContain(
+        'async findOne(id: string): Promise<UserDocument>',
+      );
+      expect(service).toContain(
+        'async remove(id: string): Promise<UserDocument>',
+      );
       expect(service).not.toContain('Promise<UserDocument | null>');
     });
   });
@@ -1700,7 +1530,8 @@ type Mutation {
         for (const method of ['findOne', 'update', 'remove']) {
           const source = body(method);
           expect(
-            source.includes('NotFoundException') || source.includes('this.findOne(id)'),
+            source.includes('NotFoundException') ||
+              source.includes('this.findOne(id)'),
             `${orm}/${db} ${method} neither throws nor delegates`,
           ).toBe(true);
         }
@@ -1730,15 +1561,6 @@ type Mutation {
         '/users/entities/user.entity.ts',
       ]);
       expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-    });
-
-    it('should reject "orm" without "db"', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          orm: 'typeorm',
-        }),
-      ).rejects.toThrow(/Option "orm" requires "db" as well/);
     });
 
     it('should wire TypeOrmModule, repository injection and string ids', async () => {
@@ -1926,210 +1748,222 @@ export class AppModule {}
     });
   });
 
-  describe('[REST API - TypeORM + SQLite]', () => {
-    it('should generate entity file instead of schema', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
-        db: 'sqlite',
-        orm: 'typeorm',
-      });
-      expect(tree.files).toEqual([
-        '/users/users.controller.spec.ts',
-        '/users/users.controller.ts',
-        '/users/users.module.ts',
-        '/users/users.service.spec.ts',
-        '/users/users.service.ts',
-        '/users/dto/create-user.dto.ts',
-        '/users/dto/update-user.dto.ts',
-        '/users/entities/user.entity.ts',
-      ]);
-      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-    });
+  describe('[REST API - TypeORM + SQL]', () => {
+    // the three sql databases share one code path; only the driver package and
+    // the emitted column types differ, so the assertions are shared
+    const sqlDbs = [
+      { db: 'sqlite', driver: 'better-sqlite3', other: 'pg' },
+      { db: 'postgres', driver: 'pg', other: 'better-sqlite3' },
+      { db: 'mysql', driver: 'mysql2', other: 'pg' },
+    ] as const;
 
-    it('should wire the sqlite path', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
-        db: 'sqlite',
-        orm: 'typeorm',
-      });
-      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
-      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
-        '@PrimaryGeneratedColumn()',
-      );
-      expect(
-        (
-          tree
-            .readContent('/users/users.service.ts')
-            .match(/new ConflictException/g) ?? []
-        ).length,
-      ).toBe(2);
-    });
+    for (const { db, driver, other } of sqlDbs) {
+      describe(`[${db}]`, () => {
+        let tree: UnitTestTree;
 
-    it('should reject sqlite with mongoose', async () => {
-      await expect(
-        runner.runSchematic('resource', {
+        beforeAll(async () => {
+          tree = await runner.runSchematic('resource', {
+            name: 'users',
+            db,
+            orm: 'typeorm',
+          });
+        });
+
+        it('should generate entity file instead of schema', () => {
+          expect(tree.files).toEqual([
+            '/users/users.controller.spec.ts',
+            '/users/users.controller.ts',
+            '/users/users.module.ts',
+            '/users/users.service.spec.ts',
+            '/users/users.service.ts',
+            '/users/dto/create-user.dto.ts',
+            '/users/dto/update-user.dto.ts',
+            '/users/entities/user.entity.ts',
+          ]);
+          expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
+        });
+
+        it('should wire Repository, numeric ids and a numeric entity', () => {
+          const entity = tree.readContent('/users/entities/user.entity.ts');
+          expect(entity).toContain('@PrimaryGeneratedColumn()');
+          expect(entity).toContain('id!: number;');
+          expect(entity).not.toContain('mongodb');
+          expect(tree.readContent('/users/users.module.ts')).toContain(
+            'TypeOrmModule.forFeature([User])',
+          );
+          const service = tree.readContent('/users/users.service.ts');
+          expect(service).toContain(
+            '@InjectRepository(User) private userRepository: Repository<User>',
+          );
+          expect(service).toContain('findOneBy({ id })');
+          expect(service).toContain('.preload({');
+          expect(service).toContain('async findOne(id: number)');
+          expect(service).toContain('async update(id: number,');
+          expect(service).toContain('async remove(id: number)');
+          expect(service).toContain(
+            'throw new NotFoundException(`User with ID ${id} not found`);',
+          );
+          expect(service).not.toContain('ObjectId');
+          expect(service).not.toContain('MongoRepository');
+          expect(service).not.toContain('mongodb');
+          expect((service.match(/new ConflictException/g) ?? []).length).toBe(
+            2,
+          );
+          const controller = tree.readContent('/users/users.controller.ts');
+          expect(controller).toContain('findOne(+id)');
+          expect(controller).toContain('update(+id,');
+          expect(controller).toContain('remove(+id)');
+        });
+
+        it(`should add ${driver} instead of the mongodb driver`, async () => {
+          const base = Tree.empty();
+          base.create('package.json', JSON.stringify({ name: 'app' }));
+          const withPkg = await runner.runSchematic(
+            'resource',
+            { name: 'users', db, orm: 'typeorm' },
+            base,
+          );
+          const pkg = JSON.parse(withPkg.readContent('package.json'));
+          expect(pkg.dependencies[driver]).toBeDefined();
+          expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
+          expect(pkg.dependencies['typeorm']).toBeDefined();
+          expect(pkg.dependencies['mongodb']).toBeUndefined();
+          expect(pkg.dependencies[other]).toBeUndefined();
+        });
+      });
+    }
+
+    it('should coerce the id on the microservice update dto', async () => {
+      for (const { db } of sqlDbs) {
+        const micro = await runner.runSchematic('resource', {
           name: 'users',
-          db: 'sqlite',
-          orm: 'mongoose',
-        }),
-      ).rejects.toThrow();
-    });
-
-    it('should wire Repository, numeric ids and a numeric entity', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
-        db: 'sqlite',
-        orm: 'typeorm',
-      });
-      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
-        '@PrimaryGeneratedColumn()',
-      );
-      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
-        'id!: number;',
-      );
-      expect(tree.readContent('/users/entities/user.entity.ts')).not.toContain(
-        'mongodb',
-      );
-      expect(tree.readContent('/users/users.module.ts')).toContain(
-        'TypeOrmModule.forFeature([User])',
-      );
-      const service = tree.readContent('/users/users.service.ts');
-      expect(service).toContain(
-        '@InjectRepository(User) private userRepository: Repository<User>',
-      );
-      expect(service).toContain('findOneBy({ id })');
-      expect(service).toContain('.preload({');
-      expect(service).toContain('async findOne(id: number)');
-      expect(service).toContain('async update(id: number,');
-      expect(service).toContain('async remove(id: number)');
-      expect(service).toContain(
-        'throw new NotFoundException(`User with ID ${id} not found`);',
-      );
-      expect(service).not.toContain('ObjectId');
-      expect(service).not.toContain('MongoRepository');
-      expect(service).not.toContain('mongodb');
-      const controller = tree.readContent('/users/users.controller.ts');
-      expect(controller).toContain('findOne(+id)');
-      expect(controller).toContain('update(+id,');
-      expect(controller).toContain('remove(+id)');
-      const micro = await runner.runSchematic('resource', {
-        name: 'users',
-        type: 'microservice',
-        db: 'sqlite',
-        orm: 'typeorm',
-      });
-      expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
-        'id!: number;',
-      );
-    });
-
-    it('should add better-sqlite3 instead of the mongodb driver', async () => {
-      const base = Tree.empty();
-      base.create('package.json', JSON.stringify({ name: 'app' }));
-      const tree = await runner.runSchematic(
-        'resource',
-        { name: 'users', db: 'sqlite', orm: 'typeorm' },
-        base,
-      );
-      const pkg = JSON.parse(tree.readContent('package.json'));
-      expect(pkg.dependencies['better-sqlite3']).toBeDefined();
-      expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
-      expect(pkg.dependencies['typeorm']).toBeDefined();
-      expect(pkg.dependencies['mongodb']).toBeUndefined();
+          type: 'microservice',
+          db,
+          orm: 'typeorm',
+        });
+        expect(micro.readContent('/users/dto/update-user.dto.ts')).toContain(
+          'id!: number;',
+        );
+      }
     });
   });
 
-  describe('[REST API - TypeORM + PostgreSQL]', () => {
-    it('should wire the SQL repository path', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
+  describe('[dependencies]', () => {
+    // each orm pulls its own adapter plus the db driver, and must not drag in
+    // a competing orm's packages
+    const cases = [
+      {
+        orm: 'typeorm',
+        db: 'sqlite',
+        driver: 'better-sqlite3',
+        present: ['@nestjs/typeorm', 'typeorm', 'better-sqlite3'],
+        absent: ['mongoose', '@nestjs/drizzle', '@nestjs/sequelize'],
+      },
+      {
+        orm: 'typeorm',
         db: 'postgres',
+        driver: 'pg',
+        present: ['@nestjs/typeorm', 'typeorm', 'pg'],
+        absent: ['mongoose', '@nestjs/drizzle'],
+      },
+      {
         orm: 'typeorm',
-      });
-      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
-      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
-        '@PrimaryGeneratedColumn()',
-      );
-      const service = tree.readContent('/users/users.service.ts');
-      expect(service).toContain(
-        '@InjectRepository(User) private userRepository: Repository<User>',
-      );
-      expect(service).not.toContain('MongoRepository');
-      expect(service).not.toContain('ObjectId');
-    });
-
-    it('should reject postgres with mongoose', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'postgres',
-          orm: 'mongoose',
-        }),
-      ).rejects.toThrow();
-    });
-
-    it('should add pg instead of the mongodb driver', async () => {
-      const base = Tree.empty();
-      base.create('package.json', JSON.stringify({ name: 'app' }));
-      const tree = await runner.runSchematic(
-        'resource',
-        { name: 'users', db: 'postgres', orm: 'typeorm' },
-        base,
-      );
-      const pkg = JSON.parse(tree.readContent('package.json'));
-      expect(pkg.dependencies['pg']).toBeDefined();
-      expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
-      expect(pkg.dependencies['typeorm']).toBeDefined();
-      expect(pkg.dependencies['mongodb']).toBeUndefined();
-      expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
-    });
-  });
-
-  describe('[REST API - TypeORM + MySQL/MariaDB]', () => {
-    it('should wire the SQL repository path', async () => {
-      const tree = await runner.runSchematic('resource', {
-        name: 'users',
         db: 'mysql',
-        orm: 'typeorm',
+        driver: 'mysql2',
+        present: ['@nestjs/typeorm', 'typeorm', 'mysql2'],
+        absent: ['mongodb', 'pg'],
+      },
+      {
+        orm: 'drizzle',
+        db: 'postgres',
+        driver: 'pg',
+        present: ['@nestjs/drizzle', 'pg'],
+        absent: ['@nestjs/typeorm', 'mongoose', '@nestjs/sequelize'],
+      },
+      {
+        orm: 'mikroorm',
+        db: 'postgres',
+        driver: '@mikro-orm/postgresql',
+        present: [
+          '@mikro-orm/nestjs',
+          '@mikro-orm/core',
+          '@mikro-orm/decorators',
+          '@mikro-orm/postgresql',
+        ],
+        absent: ['@nestjs/typeorm', 'mongoose', '@nestjs/drizzle'],
+      },
+      {
+        orm: 'sequelize',
+        db: 'postgres',
+        driver: 'pg',
+        present: [
+          '@nestjs/sequelize',
+          'sequelize',
+          'sequelize-typescript',
+          'pg',
+        ],
+        absent: ['mongodb', '@nestjs/typeorm'],
+      },
+      {
+        orm: 'sequelize',
+        db: 'sqlite',
+        driver: 'sqlite3',
+        present: [
+          '@nestjs/sequelize',
+          'sequelize',
+          'sequelize-typescript',
+          'sqlite3',
+        ],
+        absent: ['pg'],
+      },
+    ] as const;
+
+    for (const { orm, db, driver, present, absent } of cases) {
+      it(`should add ${orm} packages and the ${db} driver`, async () => {
+        const base = Tree.empty();
+        base.create('package.json', JSON.stringify({ name: 'app' }));
+        const tree = await runner.runSchematic(
+          'resource',
+          { name: 'users', db, orm },
+          base,
+        );
+        const pkg = JSON.parse(tree.readContent('package.json'));
+        for (const name of present) {
+          expect(
+            pkg.dependencies[name],
+            `${name} should be installed`,
+          ).toBeDefined();
+        }
+        for (const name of absent) {
+          expect(
+            pkg.dependencies[name],
+            `${name} should not be installed`,
+          ).toBeUndefined();
+        }
+        // each orm installs its own driver, never a rival one
+        for (const rival of ['mongodb', 'pg', 'better-sqlite3', 'mysql2']) {
+          if (rival !== driver) {
+            expect(
+              pkg.dependencies[rival],
+              `no rival driver ${rival}`,
+            ).toBeUndefined();
+          }
+        }
       });
-      expect(tree.exists('/users/entities/user.entity.ts')).toBe(true);
-      expect(tree.exists('/users/schemas/user.schema.ts')).toBe(false);
-      expect(tree.readContent('/users/entities/user.entity.ts')).toContain(
-        '@PrimaryGeneratedColumn()',
-      );
-      const service = tree.readContent('/users/users.service.ts');
-      expect(service).toContain(
-        '@InjectRepository(User) private userRepository: Repository<User>',
-      );
-      expect(service).not.toContain('MongoRepository');
-      expect(service).not.toContain('ObjectId');
-    });
+    }
 
-    it('should reject mysql with mongoose', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'mysql',
-          orm: 'mongoose',
-        }),
-      ).rejects.toThrow();
-    });
-
-    it('should add mysql2 (MySQL and MariaDB driver) instead of the mongodb driver', async () => {
+    it('should pin drizzle to the rc line and put drizzle-kit in devDependencies', async () => {
       const base = Tree.empty();
       base.create('package.json', JSON.stringify({ name: 'app' }));
       const tree = await runner.runSchematic(
         'resource',
-        { name: 'users', db: 'mysql', orm: 'typeorm' },
+        { name: 'users', db: 'postgres', orm: 'drizzle' },
         base,
       );
       const pkg = JSON.parse(tree.readContent('package.json'));
-      expect(pkg.dependencies['mysql2']).toBeDefined();
-      expect(pkg.dependencies['@nestjs/typeorm']).toBeDefined();
-      expect(pkg.dependencies['typeorm']).toBeDefined();
-      expect(pkg.dependencies['mongodb']).toBeUndefined();
-      expect(pkg.dependencies['pg']).toBeUndefined();
+      expect(pkg.dependencies['drizzle-orm']).toBe('1.0.0-rc.4');
+      expect(pkg.devDependencies['drizzle-kit']).toBe('1.0.0-rc.4');
+      expect(pkg.dependencies['drizzle-kit']).toBeUndefined();
     });
   });
 
@@ -2159,16 +1993,6 @@ export class AppModule {}
       );
       expect(schema).toContain('export type User = typeof users.$inferSelect;');
       expect(schema).not.toContain('export class User');
-    });
-
-    it('should reject mongodb with drizzle', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'mongodb',
-          orm: 'drizzle',
-        }),
-      ).rejects.toThrow();
     });
 
     it('should wire @InjectDrizzle, numeric ids and the query builder', async () => {
@@ -2266,23 +2090,6 @@ export class AppModule {}
         expect(service).toContain('SQLITE_CONSTRAINT');
         expect(service).toContain('11000');
       }
-    });
-
-    it('should add drizzle dependencies with the driver for the db', async () => {
-      const base = Tree.empty();
-      base.create('package.json', JSON.stringify({ name: 'app' }));
-      const tree = await runner.runSchematic(
-        'resource',
-        { name: 'users', db: 'postgres', orm: 'drizzle' },
-        base,
-      );
-      const pkg = JSON.parse(tree.readContent('package.json'));
-      expect(pkg.dependencies['@nestjs/drizzle']).toBeDefined();
-      expect(pkg.dependencies['drizzle-orm']).toBe('1.0.0-rc.4');
-      expect(pkg.dependencies['pg']).toBeDefined();
-      expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
-      expect(pkg.dependencies['mongoose']).toBeUndefined();
-      expect(pkg.devDependencies['drizzle-kit']).toBe('1.0.0-rc.4');
     });
 
     it('should create drizzle.config.ts with the generated schema', async () => {
@@ -2505,47 +2312,7 @@ export default defineConfig({
       expect(service).toContain('await user.destroy()');
       expect(service).toContain("name === 'SequelizeUniqueConstraintError'");
       expect(service).not.toContain('userRepository');
-      expect(
-        (service.match(/new ConflictException/g) ?? []).length,
-      ).toBe(2);
-    });
-
-    it('should reject mongodb, which sequelize does not support', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'mongodb',
-          orm: 'sequelize',
-        }),
-      ).rejects.toThrow(/Sequelize does not support MongoDB/);
-    });
-
-    it('should add sequelize dependencies and the dialect driver', async () => {
-      const withPkg = () => {
-        const base = Tree.empty();
-        base.create('package.json', JSON.stringify({ name: 'app' }));
-        return base;
-      };
-      const postgres = await runner.runSchematic(
-        'resource',
-        { name: 'users', db: 'postgres', orm: 'sequelize' },
-        withPkg(),
-      );
-      const pg = JSON.parse(postgres.readContent('package.json'));
-      expect(pg.dependencies['@nestjs/sequelize']).toBeDefined();
-      expect(pg.dependencies['sequelize']).toBeDefined();
-      expect(pg.dependencies['sequelize-typescript']).toBeDefined();
-      expect(pg.dependencies['pg']).toBeDefined();
-      expect(pg.dependencies['mongodb']).toBeUndefined();
-
-      const sqlite = await runner.runSchematic(
-        'resource',
-        { name: 'items', db: 'sqlite', orm: 'sequelize' },
-        withPkg(),
-      );
-      const lite = JSON.parse(sqlite.readContent('package.json'));
-      expect(lite.dependencies['sqlite3']).toBeDefined();
-      expect(lite.dependencies['pg']).toBeUndefined();
+      expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     });
 
     it('should render requested fields as DataType columns', async () => {
@@ -2557,7 +2324,9 @@ export default defineConfig({
       });
       const entity = tree.readContent('/notes/entities/note.entity.ts');
       expect(entity).toContain('@Column(DataType.STRING(255))');
-      expect(entity).toContain('@Column({ type: DataType.INTEGER, allowNull: true })');
+      expect(entity).toContain(
+        '@Column({ type: DataType.INTEGER, allowNull: true })',
+      );
       expect(entity).toContain(
         "@Column({ type: DataType.DATE, field: 'published_at', allowNull: true })",
       );
@@ -2703,24 +2472,6 @@ export default defineConfig({
       );
     });
 
-    it('should add the mikro-orm packages with the driver for the db', async () => {
-      const base = Tree.empty();
-      base.create('package.json', JSON.stringify({ name: 'app' }));
-      const tree = await runner.runSchematic(
-        'resource',
-        { name: 'users', db: 'postgres', orm: 'mikroorm' },
-        base,
-      );
-      const pkg = JSON.parse(tree.readContent('package.json'));
-      expect(pkg.dependencies['@mikro-orm/nestjs']).toBeDefined();
-      expect(pkg.dependencies['@mikro-orm/core']).toBeDefined();
-      expect(pkg.dependencies['@mikro-orm/decorators']).toBeDefined();
-      expect(pkg.dependencies['@mikro-orm/postgresql']).toBeDefined();
-      expect(pkg.dependencies['@nestjs/typeorm']).toBeUndefined();
-      expect(pkg.dependencies['mongoose']).toBeUndefined();
-      expect(pkg.dependencies['@nestjs/drizzle']).toBeUndefined();
-    });
-
     it('should not overwrite an existing mikro-orm.config.ts', async () => {
       const existing = `import { defineConfig } from '@mikro-orm/sqlite';
 
@@ -2770,7 +2521,7 @@ export default defineConfig({
         base,
       );
       expect(tree.readContent('mikro-orm.config.ts')).toContain(
-        "@mikro-orm/postgresql",
+        '@mikro-orm/postgresql',
       );
       expect(tree.readContent('mikro-orm.config.ts')).not.toContain('sqlite');
     });
@@ -2809,7 +2560,8 @@ export default defineConfig({
       ).rejects.toThrow(/configured for "sqlite"/);
     });
 
-    it('should refuse a driver that differs from mikro-orm.config.ts', async () => {      const existing = `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+    it('should refuse a driver that differs from mikro-orm.config.ts', async () => {
+      const existing = `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { defineConfig } from '@mikro-orm/postgresql';
 
 export default defineConfig({
@@ -2823,19 +2575,13 @@ export default defineConfig({
         const base = Tree.empty();
         base.create('mikro-orm.config.ts', existing);
         await expect(
-          runner.runSchematic('resource', { name: 'users', db, orm: 'mikroorm' }, base),
+          runner.runSchematic(
+            'resource',
+            { name: 'users', db, orm: 'mikroorm' },
+            base,
+          ),
         ).rejects.toThrow(/configured for "postgresql"/);
       }
-    });
-
-    it('should keep rejecting mongodb with drizzle', async () => {
-      await expect(
-        runner.runSchematic('resource', {
-          name: 'users',
-          db: 'mongodb',
-          orm: 'drizzle',
-        }),
-      ).rejects.toThrow();
     });
   });
 
