@@ -186,11 +186,16 @@ for free.
 | drizzle + sqlite   | `text`                   | `integer`  | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text`        |
 | drizzle + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
 
+`float` is one precision per database, whichever ORM renders it: an 8-byte
+double on postgres and mysql, `real` on sqlite (its only floating point type).
+So `postgres` is `double precision` / `doublePrecision` / `'double'` /
+`DataType.DOUBLE` depending on the ORM, and sqlite is `real` / `float` /
+`DataType.FLOAT`.
+
 Under graphql, `date` and `json` degrade to `String` in both code-first
 (`@Field`) and schema-first (SDL) output — mapping them to
 `GraphQLISODateTime`/`graphql-type-json` would add dependencies nobody asked for.
-Only `Int`, `Float` and `ID` get imported from `@nestjs/graphql`; `String` and
-`Boolean` are globals. If you need real scalars, import them yourself after
+Only `Int`, `Float` and `ID` get imported from `@nestjs/graphql`; `String` and`Boolean` are globals. If you need real scalars, import them yourself after
 generating.
 
 ## Wiring the generator performs

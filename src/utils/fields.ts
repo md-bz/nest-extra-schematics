@@ -94,6 +94,27 @@ const mongoType: Record<FieldKind, string> = {
   uuid: 'String',
 };
 
+/**
+ * One float column type per database, shared by every orm: an 8-byte double
+ * everywhere except sqlite, whose only floating point type is real. The orms
+ * spell these differently, so the adapters below map the canonical name onto
+ * each orm's vocabulary rather than hardcoding a second table.
+ */
+const FLOAT_COLUMN = {
+  postgres: 'double precision',
+  sqlite: 'real',
+  mysql: 'double',
+} as Record<string, string>;
+
+const drizzleFloat = (sql: string) =>
+  sql === 'double precision' ? 'doublePrecision' : sql;
+
+const mikroFloat = (sql: string) =>
+  sql === 'double precision' ? 'double' : sql === 'real' ? 'float' : sql;
+
+const sequelizeFloat = (sql: string) =>
+  sql === 'real' ? 'DataType.FLOAT' : 'DataType.DOUBLE';
+
 const mikroType: Record<FieldKind, string> = {
   string: 'string',
   text: 'text',
@@ -123,7 +144,7 @@ const typeormColumn = {
     string: { type: 'varchar', length: 255 },
     text: { type: 'text' },
     int: { type: 'int' },
-    float: { type: 'double precision' },
+    float: { type: FLOAT_COLUMN.postgres },
     bool: { type: 'boolean' },
     date: { type: 'timestamp' },
     json: { type: 'jsonb' },
@@ -133,7 +154,7 @@ const typeormColumn = {
     string: { type: 'varchar', length: 255 },
     text: { type: 'text' },
     int: { type: 'integer' },
-    float: { type: 'real' },
+    float: { type: FLOAT_COLUMN.sqlite },
     bool: { type: 'boolean' },
     date: { type: 'datetime' },
     json: { type: 'simple-json' },
@@ -143,7 +164,7 @@ const typeormColumn = {
     string: { type: 'varchar', length: 255 },
     text: { type: 'text' },
     int: { type: 'int' },
-    float: { type: 'double' },
+    float: { type: FLOAT_COLUMN.mysql },
     bool: { type: 'boolean' },
     date: { type: 'datetime' },
     json: { type: 'json' },
@@ -156,7 +177,7 @@ const drizzleColumn = {
     string: ['text', ''],
     text: ['text', ''],
     int: ['integer', ''],
-    float: ['real', ''],
+    float: [drizzleFloat(FLOAT_COLUMN.postgres), ''],
     bool: ['boolean', ''],
     date: ['timestamp', ''],
     json: ['jsonb', ''],
@@ -166,7 +187,7 @@ const drizzleColumn = {
     string: ['text', ''],
     text: ['text', ''],
     int: ['integer', ''],
-    float: ['real', ''],
+    float: [drizzleFloat(FLOAT_COLUMN.sqlite), ''],
     bool: ['integer', ", { mode: 'boolean' }"],
     date: ['integer', ", { mode: 'timestamp_ms' }"],
     json: ['text', ", { mode: 'json' }"],
@@ -176,7 +197,7 @@ const drizzleColumn = {
     string: ['varchar', ', { length: 255 }'],
     text: ['text', ''],
     int: ['int', ''],
-    float: ['double', ''],
+    float: [drizzleFloat(FLOAT_COLUMN.mysql), ''],
     bool: ['boolean', ''],
     date: ['datetime', ''],
     json: ['json', ''],
@@ -310,13 +331,16 @@ function entityBody(
   declareProp: (field: Field) => string,
 ): string {
   if (ctx.orm === 'mikroorm') {
-    return body((f) => [`  ${mikroDecorator(f)}`, `  ${prop(f)}`]);
+    return body((f) => [`  ${mikroDecorator(f, ctx.db)}`, `  ${prop(f)}`]);
   }
   if (ctx.orm === 'typeorm') {
     return body((f) => [`  ${typeormDecorator(f, ctx.db)}`, `  ${prop(f)}`]);
   }
   if (ctx.orm === 'sequelize') {
-    return body((f) => [`  ${sequelizeDecorator(f)}`, `  ${declareProp(f)}`]);
+    return body((f) => [
+      `  ${sequelizeDecorator(f, ctx.db)}`,
+      `  ${declareProp(f)}`,
+    ]);
   }
   return body((f) => [`  ${prop(f)}`]);
 }
@@ -419,23 +443,29 @@ function mongoDecorator(field: Field): string {
   return `@Prop({ ${options.join(', ')} })`;
 }
 
-function mikroDecorator(field: Field): string {
-  const options = [`type: '${mikroType[field.kind]}'`];
+function mikroDecorator(field: Field, db?: string): string {
+  const type =
+    field.kind === 'float' ? mikroFloat(FLOAT_COLUMN[db!]) : mikroType[field.kind];
+  const options = [`type: '${type}'`];
   if (field.column !== field.prop) options.unshift(`name: '${field.column}'`);
   if (field.optional) options.push('nullable: true');
   return `@Property({ ${options.join(', ')} })`;
 }
 
-function sequelizeDecorator(field: Field): string {
+function sequelizeDecorator(field: Field, db?: string): string {
+  const type =
+    field.kind === 'float'
+      ? sequelizeFloat(FLOAT_COLUMN[db!])
+      : sequelizeType[field.kind];
   // ponytail: sequelize takes either a bare DataType or an options object with
   // `type` in it — a call can never mix the positional and labelled forms
   const options: string[] = [];
   if (field.column !== field.prop) options.push(`field: '${field.column}'`);
   if (field.optional) options.push('allowNull: true');
   if (!options.length) {
-    return `@Column(${sequelizeType[field.kind]})`;
+    return `@Column(${type})`;
   }
-  return `@Column({ type: ${sequelizeType[field.kind]}, ${options.join(', ')} })`;
+  return `@Column({ type: ${type}, ${options.join(', ')} })`;
 }
 
 function typeormDecorator(field: Field, db?: string): string {
