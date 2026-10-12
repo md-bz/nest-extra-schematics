@@ -730,6 +730,8 @@ function addMikroOrmDependenciesIfApplies(options: ResourceOptions): Rule {
       '@mikro-orm/decorators',
       `@mikro-orm/${mikroOrmDriver(options.db)}` as PackageName,
     ]);
+    // schema:update ships in the cli, which is only a devDependency
+    installIfNotInstalled(host, context, ['@mikro-orm/cli'], NodeDependencyType.Dev);
   };
 }
 

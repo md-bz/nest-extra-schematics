@@ -24,6 +24,8 @@ const MIKRO_ORM_VERSION = '^7.2.5';
  */
 export const PACKAGE_VERSIONS = {
   '@mikro-orm/core': MIKRO_ORM_VERSION,
+  // cli ships the schema:update command, and must match the core version
+  '@mikro-orm/cli': MIKRO_ORM_VERSION,
   '@mikro-orm/decorators': MIKRO_ORM_VERSION,
   '@mikro-orm/mongodb': MIKRO_ORM_VERSION,
   '@mikro-orm/mysql': MIKRO_ORM_VERSION,

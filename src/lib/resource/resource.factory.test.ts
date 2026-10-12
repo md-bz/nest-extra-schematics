@@ -1952,6 +1952,23 @@ export class AppModule {}
       });
     }
 
+    it('should add the mikro-orm cli as a devDependency', async () => {
+      const base = Tree.empty();
+      base.create('package.json', JSON.stringify({ name: 'app' }));
+      const mikro = await runner.runSchematic(
+        'resource',
+        { name: 'users', db: 'postgres', orm: 'mikroorm' },
+        base,
+      );
+      const pkg = JSON.parse(mikro.readContent('package.json'));
+      // schema:update ships in the cli, which must match the core version
+      expect(pkg.devDependencies['@mikro-orm/cli']).toBeDefined();
+      expect(pkg.devDependencies['@mikro-orm/cli']).toBe(
+        pkg.dependencies['@mikro-orm/core'],
+      );
+      expect(pkg.dependencies['@mikro-orm/cli']).toBeUndefined();
+    });
+
     it('should pin drizzle to the rc line and put drizzle-kit in devDependencies', async () => {
       const base = Tree.empty();
       base.create('package.json', JSON.stringify({ name: 'app' }));
