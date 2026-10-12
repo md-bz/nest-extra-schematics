@@ -79,6 +79,22 @@ extended from resource, has some basic properties for user (username, email, fir
 $ nest g -c nest-extra-schematics u users
 ```
 
+### Applying the schema
+
+Generating a resource only writes code — nothing touches your database. typeorm,
+mongoose and sequelize create their tables on boot, but **drizzle and mikro-orm
+do not**, so push the schema after generating or changing an entity:
+
+```bash
+$ bunx drizzle-kit push --config=drizzle.config.ts
+$ bunx mikro-orm schema:update --run
+```
+
+Both CLIs are added as devDependencies for you (`drizzle-kit`,
+`@mikro-orm/cli`). Use `npx`/`pnpm dlx`/`yarn dlx` instead of `bunx` if that
+matches your project. Both diff against a live database, so credentials must be
+set and the database reachable.
+
 ### Auth
 
 JWT auth (Passport) wired to the user resource. Two methods: `jwt` (password login) or `code` (a login code your own email/sms module delivers — it must provide `CODE_SENDER` with `sendCode(to, code)` and a `CODE_STORE`). Login identifies the user by `email` by default. Codes allow 3 attempts and expire after `CODE_TTL_MINUTES` (default 10).

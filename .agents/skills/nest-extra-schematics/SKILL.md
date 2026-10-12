@@ -77,7 +77,7 @@ Shared by `resource` and `user` (except `fields`, which is `resource`-only):
 | `--type`                                           | `rest`, `graphql-code-first`, `graphql-schema-first`, `microservice`, `ws` | `rest`             |
 | `--crud`                                           | `true`/`false`                                                             | `true`             |
 | `--db`                                             | `none`, `mongodb`, `sqlite`, `postgres`, `mysql`                           | none               |
-| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`, `sequelize`           | none               |
+| `--orm`                                            | `none`, `mongoose`, `typeorm`, `drizzle`, `mikroorm`, `sequelize`          | none               |
 | `--fields`                                         | see below (`resource` only)                                                | none               |
 | `--spec`                                           | `true`/`false`                                                             | `true`             |
 | `--flat`                                           | `true`/`false`                                                             | `false`            |
@@ -173,18 +173,18 @@ for free.
 
 ### Per-ORM field output
 
-| orm / db           | string                   | int        | bool                        | date                             | json                  | uuid          |
-| ------------------ | ------------------------ | ---------- | --------------------------- | -------------------------------- | --------------------- | ------------- |
-| typeorm + postgres | `varchar(255)`           | `int`      | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`        |
-| typeorm + sqlite   | `varchar(255)`           | `integer`  | `boolean`                   | `datetime`                       | `simple-json`         | `varchar(36)` |
-| typeorm + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
-| typeorm + mongodb  | `@Column()` (schemaless) |            |                             |                                  |                       |               |
-| mongoose           | `String, required`       | `Number`   | `Boolean`                   | `Date`                           | `'Mixed'`             | `String`      |
-| mikro-orm          | `type: 'string'`         | `'number'` | `'boolean'`                 | `'Date'`                         | `'json'`              | `'string'`    |
-| sequelize          | `DataType.STRING(255)`   | `DataType.INTEGER` | `DataType.BOOLEAN`  | `DataType.DATE`                  | `DataType.JSON`       | `DataType.UUID` |
-| drizzle + postgres | `text`                   | `integer`  | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`        |
-| drizzle + sqlite   | `text`                   | `integer`  | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text`        |
-| drizzle + mysql    | `varchar(255)`           | `int`      | `boolean`                   | `datetime`                       | `json`                | `varchar(36)` |
+| orm / db           | string                   | int                | bool                        | date                             | json                  | uuid            |
+| ------------------ | ------------------------ | ------------------ | --------------------------- | -------------------------------- | --------------------- | --------------- |
+| typeorm + postgres | `varchar(255)`           | `int`              | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`          |
+| typeorm + sqlite   | `varchar(255)`           | `integer`          | `boolean`                   | `datetime`                       | `simple-json`         | `varchar(36)`   |
+| typeorm + mysql    | `varchar(255)`           | `int`              | `boolean`                   | `datetime`                       | `json`                | `varchar(36)`   |
+| typeorm + mongodb  | `@Column()` (schemaless) |                    |                             |                                  |                       |                 |
+| mongoose           | `String, required`       | `Number`           | `Boolean`                   | `Date`                           | `'Mixed'`             | `String`        |
+| mikro-orm          | `type: 'string'`         | `'number'`         | `'boolean'`                 | `'Date'`                         | `'json'`              | `'string'`      |
+| sequelize          | `DataType.STRING(255)`   | `DataType.INTEGER` | `DataType.BOOLEAN`          | `DataType.DATE`                  | `DataType.JSON`       | `DataType.UUID` |
+| drizzle + postgres | `text`                   | `integer`          | `boolean`                   | `timestamp`                      | `jsonb`               | `uuid`          |
+| drizzle + sqlite   | `text`                   | `integer`          | `integer({mode:'boolean'})` | `integer({mode:'timestamp_ms'})` | `text({mode:'json'})` | `text`          |
+| drizzle + mysql    | `varchar(255)`           | `int`              | `boolean`                   | `datetime`                       | `json`                | `varchar(36)`   |
 
 `float` is one precision per database, whichever ORM renders it: an 8-byte
 double on postgres and mysql, `real` on sqlite (its only floating point type).
@@ -213,12 +213,12 @@ Beyond writing files, it edits existing project files. Expect and review these:
   Refuses when an existing config uses a different driver: the `entities` globs
   sweep in every entity in the project, so a second driver would load
   incompatible ones. One database per project.
-- **sequelize** — appends the model class to the `models` array inside
-  `SequelizeModule.forRoot({…})` and adds an `import` line to the app module.
-  Only works if that call already exists; a project without it gets the feature
-  module but no root registration.
+- **sequelize** — nothing to wire in `app.module`. `autoLoadModels: true`
+  picks up every decorated model, so a project that has it needs no edit.
 - **all** — adds the ORM, its driver package, `class-validator` and
-  `@nestjs/mapped-types` to `package.json` as needed, then installs.
+  `@nestjs/mapped-types` to `package.json` as needed, then installs. Drizzle
+  also gets `drizzle-kit` and mikro-orm gets `@mikro-orm/cli`, both as
+  devDependencies — see "Applying the schema to the database" below.
 
 Services map duplicate-key errors to `ConflictException` (codes `11000`,
 `23505`, `ER_DUP_ENTRY`, `SQLITE_CONSTRAINT*`) and throw `NotFoundException` on
@@ -246,6 +246,30 @@ missing rows. Return types are concrete (`Promise<Note>`), not `any`.
   `exampleField` placeholder, which is what all pre-existing tests assert.
 - **JavaScript is unsupported** by `resource`; passing `language: js` throws.
 - **`format`** only does anything if Prettier is installed in the target project.
+
+## Applying the schema to the database
+
+Generating a resource writes code; it never touches your database. TypeORM,
+mongoose and sequelize create their tables on boot (sequelize and TypeOrm when
+`synchronize` is on), but **drizzle and mikro-orm do not** — they only record
+metadata. Push the schema after every generation that adds or changes an
+entity, or the app will query a table that does not exist:
+
+```bash
+# drizzle — drizzle-kit reads drizzle.config.ts, which the generator edits
+bunx drizzle-kit push --config=drizzle.config.ts
+
+# mikro-orm — schema:update diffs metadata against the live database
+bunx mikro-orm schema:update --run
+```
+
+Both CLIs are devDependencies added for you (`drizzle-kit`, `@mikro-orm/cli`).
+Use `npx` in an npm project, `pnpm dlx`/`yarn dlx` for the others — only the
+runner differs, not the arguments.
+
+Add `--dry-run`/`--dump` if you want to see the SQL first. Note that both
+compare against a _live_ database, so they need `DATABASE_URL` (or the other
+credentials) to be set and the database to be reachable.
 
 ## Verifying what you generated
 
