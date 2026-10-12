@@ -263,13 +263,25 @@ bunx drizzle-kit push --config=drizzle.config.ts
 bunx mikro-orm schema:update --run
 ```
 
-Both CLIs are devDependencies added for you (`drizzle-kit`, `@mikro-orm/cli`).
-Use `npx` in an npm project, `pnpm dlx`/`yarn dlx` for the others — only the
-runner differs, not the arguments.
+Both CLIs are devDependencies added for you — `drizzle-kit`, and for mikro-orm
+`@mikro-orm/cli` plus `tsx`, the TypeScript loader its CLI registers to read
+the `.ts` config and entity sources. Use `npx` in an npm project,
+`pnpm dlx`/`yarn dlx` for the others — only the runner differs, not the
+arguments.
 
-Add `--dry-run`/`--dump` if you want to see the SQL first. Note that both
-compare against a _live_ database, so they need `DATABASE_URL` (or the other
-credentials) to be set and the database to be reachable.
+Two things that will bite otherwise:
+
+- Both compare against a _live_ database, so credentials must be set and the
+  database reachable. `DATABASE_URL` covers postgres/mysql/mongo; sqlite uses
+  the `dbName` in the generated config.
+- The mikro-orm CLI reads the config and entities as TypeScript, so it needs
+  `experimentalDecorators` in `tsconfig.json` — the Nest app schematic already
+  sets it. Without it you get `x Expression expected` on `@Entity()`.
+
+The generated `mikro-orm.config.ts` uses `TsMorphMetadataProvider`, which reads
+the entity sources instead of relying on emitted decorator metadata. Do not
+switch it to `ReflectMetadataProvider`: that one needs `emitDecoratorMetadata`
+to survive the loader, and it silently drops column types when it does not.
 
 ## Verifying what you generated
 

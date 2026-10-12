@@ -2381,7 +2381,13 @@ export default defineConfig({
       );
       expect(config).toContain('clientUrl: process.env.DATABASE_URL!');
       expect(config).toContain("entitiesTs: ['./src/**/*.entity.ts']");
-      expect(config).toContain('metadataProvider: ReflectMetadataProvider');
+      // ts-morph reads the entity sources, so metadata does not depend on
+      // emitDecoratorMetadata being honoured by whatever loader runs the cli
+      expect(config).toContain(
+        "import { TsMorphMetadataProvider } from '@mikro-orm/reflection';",
+      );
+      expect(config).toContain('metadataProvider: TsMorphMetadataProvider');
+      expect(config).not.toContain('ReflectMetadataProvider');
     });
 
     it('should wire MikroOrmModule, repository injection and numeric ids', async () => {

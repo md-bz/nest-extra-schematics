@@ -645,14 +645,14 @@ function createMikroOrmConfig(db: string | undefined): string {
     db === 'sqlite'
       ? "  dbName: 'sqlite.db',"
       : '  clientUrl: process.env.DATABASE_URL!,';
-  return `import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
+  return `import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import { defineConfig } from '@mikro-orm/${mikroOrmDriver(db)}';
 
 export default defineConfig({
 ${connection}
   entities: ['./dist/**/*.entity.js'],
   entitiesTs: ['./src/**/*.entity.ts'],
-  metadataProvider: ReflectMetadataProvider,
+  metadataProvider: TsMorphMetadataProvider,
 });
 `;
 }
@@ -728,10 +728,17 @@ function addMikroOrmDependenciesIfApplies(options: ResourceOptions): Rule {
       '@mikro-orm/nestjs',
       '@mikro-orm/core',
       '@mikro-orm/decorators',
+      '@mikro-orm/reflection',
       `@mikro-orm/${mikroOrmDriver(options.db)}` as PackageName,
     ]);
-    // schema:update ships in the cli, which is only a devDependency
-    installIfNotInstalled(host, context, ['@mikro-orm/cli'], NodeDependencyType.Dev);
+    // dev-only: the cli runs schema:update, and tsx is the loader it registers
+    // to read the .ts config and entity sources
+    installIfNotInstalled(
+      host,
+      context,
+      ['@mikro-orm/cli', 'tsx'],
+      NodeDependencyType.Dev,
+    );
   };
 }
 

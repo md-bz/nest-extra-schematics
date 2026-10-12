@@ -33,6 +33,7 @@ export const PACKAGE_VERSIONS = {
   // peer-depends on core ^7.0.0, which the shared floor satisfies
   '@mikro-orm/nestjs': '^7.1.0',
   '@mikro-orm/postgresql': MIKRO_ORM_VERSION,
+  '@mikro-orm/reflection': MIKRO_ORM_VERSION,
   '@mikro-orm/sqlite': MIKRO_ORM_VERSION,
   '@nestjs/config': '^12.0.1',
   '@nestjs/drizzle': '^0.0.1',
@@ -62,6 +63,7 @@ export const PACKAGE_VERSIONS = {
   'sequelize-typescript': '^2.1.6',
   sqlite3: '^6.0.1',
   typeorm: '^1.1.2',
+  tsx: '^4.23.15',
 } as const;
 
 export type PackageName = keyof typeof PACKAGE_VERSIONS;

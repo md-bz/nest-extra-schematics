@@ -90,10 +90,11 @@ $ bunx drizzle-kit push --config=drizzle.config.ts
 $ bunx mikro-orm schema:update --run
 ```
 
-Both CLIs are added as devDependencies for you (`drizzle-kit`,
-`@mikro-orm/cli`). Use `npx`/`pnpm dlx`/`yarn dlx` instead of `bunx` if that
-matches your project. Both diff against a live database, so credentials must be
-set and the database reachable.
+The CLIs are added as devDependencies for you: `drizzle-kit`, and for mikro-orm
+`@mikro-orm/cli` plus `tsx` (the TypeScript loader its CLI registers). Use
+`npx`/`pnpm dlx`/`yarn dlx` instead of `bunx` if that matches your project. Both
+need a reachable database and, for mikro-orm, `experimentalDecorators` in
+`tsconfig.json` — which the Nest app schematic already sets.
 
 ### Auth
 
