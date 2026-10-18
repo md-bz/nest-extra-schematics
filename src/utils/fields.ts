@@ -126,6 +126,13 @@ const mikroType: Record<FieldKind, string> = {
   uuid: 'string',
 };
 
+// mongo is schemaless: `text` has no CLOB, and a `float` here is a JS number,
+// which BSON stores as a double. Everything else matches the SQL map.
+const mikroMongoType: Partial<Record<FieldKind, string>> = {
+  text: 'string',
+  float: 'double',
+};
+
 // sequelize-typescript takes DataType constants rather than db-specific names,
 // so one map covers every dialect it supports
 const sequelizeType: Record<FieldKind, string> = {
@@ -439,13 +446,18 @@ function parseToken(token: string): Field {
 function mongoDecorator(field: Field): string {
   const options = [`type: ${mongoType[field.kind]}`];
   if (!field.optional) options.push('required: true');
-  if (field.column !== field.prop) options.unshift(`name: '${field.column}'`);
   return `@Prop({ ${options.join(', ')} })`;
 }
 
 function mikroDecorator(field: Field, db?: string): string {
-  const type =
-    field.kind === 'float' ? mikroFloat(FLOAT_COLUMN[db!]) : mikroType[field.kind];
+  let type: string;
+  if (db === 'mongodb') {
+    type = mikroMongoType[field.kind] ?? mikroType[field.kind];
+  } else if (field.kind === 'float') {
+    type = mikroFloat(FLOAT_COLUMN[db!]);
+  } else {
+    type = mikroType[field.kind];
+  }
   const options = [`type: '${type}'`];
   if (field.column !== field.prop) options.unshift(`name: '${field.column}'`);
   if (field.optional) options.push('nullable: true');

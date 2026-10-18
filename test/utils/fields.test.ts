@@ -1,16 +1,11 @@
 import { SchematicsException } from '@angular-devkit/schematics';
-import {
-  parseFields,
-  FIELD_KINDS,
-} from '../../src/utils/fields.js';
+import { parseFields, FIELD_KINDS } from '../../src/utils/fields.js';
 
 describe('parseFields', () => {
   it('should return placeholder bodies when no spec is given', () => {
     const parsed = parseFields(undefined, { orm: 'typeorm', db: 'postgres' });
     expect(parsed.fields).toEqual([]);
-    expect(parsed.dtoBody).toBe(
-      '  @IsString()\n  exampleField!: string;\n',
-    );
+    expect(parsed.dtoBody).toBe('  @IsString()\n  exampleField!: string;\n');
     expect(parsed.validatorImports).toBe('IsString');
     expect(parsed.drizzleBody).toBe(
       "  exampleField: text('exampleField').notNull(),\n",
@@ -46,17 +41,22 @@ describe('parseFields', () => {
   });
 
   it('should accept kind aliases', () => {
-    expect(parseFields('a:integer,b:number,c:boolean', {}).fields.map((f) => f.kind)).toEqual([
-      'int',
-      'int',
-      'bool',
-    ]);
+    expect(
+      parseFields('a:integer,b:number,c:boolean', {}).fields.map((f) => f.kind),
+    ).toEqual(['int', 'int', 'bool']);
   });
 
   it('should snake_case the column and camelCase the property', () => {
-    const [field] = parseFields('publishedAt:date,first_name:string', {}).fields;
-    expect(parseFields('publishedAt:date,first_name:string', {}).fields[0].column).toBe('published_at');
-    expect(parseFields('publishedAt:date,first_name:string', {}).fields[1].prop).toBe('firstName');
+    const [field] = parseFields(
+      'publishedAt:date,first_name:string',
+      {},
+    ).fields;
+    expect(
+      parseFields('publishedAt:date,first_name:string', {}).fields[0].column,
+    ).toBe('published_at');
+    expect(
+      parseFields('publishedAt:date,first_name:string', {}).fields[1].prop,
+    ).toBe('firstName');
     expect(field.kind).toBe('date');
   });
 
@@ -68,7 +68,9 @@ describe('parseFields', () => {
   });
 
   it('should throw on an unknown kind', () => {
-    expect(() => parseFields('a:bogus', {})).toThrow(/Unknown field type "bogus"/);
+    expect(() => parseFields('a:bogus', {})).toThrow(
+      /Unknown field type "bogus"/,
+    );
   });
 
   it('should list the supported kinds in the error', () => {
@@ -86,10 +88,13 @@ describe('parseFields', () => {
 
   describe('typeorm + postgres', () => {
     it('should emit typed columns and class-validator decorators', () => {
-      const parsed = parseFields('title:string,body:text,views:int?,meta:json', {
-        orm: 'typeorm',
-        db: 'postgres',
-      });
+      const parsed = parseFields(
+        'title:string,body:text,views:int?,meta:json',
+        {
+          orm: 'typeorm',
+          db: 'postgres',
+        },
+      );
       expect(parsed.entityBody).toBe(
         `  @Column({ type: 'varchar', length: 255 })
   title!: string;
@@ -186,7 +191,8 @@ describe('parseFields', () => {
   describe('mongoose', () => {
     it('should emit required props', () => {
       expect(
-        parseFields('title:string,views:int?', { orm: 'mongoose' }).mongooseBody,
+        parseFields('title:string,views:int?', { orm: 'mongoose' })
+          .mongooseBody,
       ).toBe(
         `  @Prop({ type: String, required: true })
   title!: string;
@@ -214,6 +220,16 @@ describe('parseFields', () => {
 `,
       );
     });
+
+    it('should not emit a path name, which mongoose ignores', () => {
+      expect(
+        parseFields('publishedAt:date', { orm: 'mongoose' }).mongooseBody,
+      ).toBe(
+        `  @Prop({ type: Date, required: true })
+  publishedAt!: Date;
+`,
+      );
+    });
   });
 
   describe('mikroorm', () => {
@@ -229,6 +245,22 @@ describe('parseFields', () => {
 
   @Property({ type: 'number', nullable: true })
   views?: number;
+`,
+      );
+    });
+
+    it('should use mongo-native types on mongodb', () => {
+      expect(
+        parseFields('body:text,rating:float', {
+          orm: 'mikroorm',
+          db: 'mongodb',
+        }).entityBody,
+      ).toBe(
+        `  @Property({ type: 'string' })
+  body!: string;
+
+  @Property({ type: 'double' })
+  rating!: number;
 `,
       );
     });
@@ -298,9 +330,12 @@ describe('parseFields', () => {
 
     it('should only import scalars @nestjs/graphql re-exports', () => {
       expect(
-        parseFields('title:string,draft:bool,score:float,ref:uuid,at:date,meta:json', {
-          type: 'graphql-code-first',
-        }).graphqlDecorators,
+        parseFields(
+          'title:string,draft:bool,score:float,ref:uuid,at:date,meta:json',
+          {
+            type: 'graphql-code-first',
+          },
+        ).graphqlDecorators,
       ).toBe('ObjectType, Field, Float, ID');
     });
 

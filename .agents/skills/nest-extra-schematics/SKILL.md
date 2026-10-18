@@ -109,8 +109,10 @@ also gets `@Type(() => Date)`, and the generator adds `class-transformer` to
 
 `id` is reserved (primary key) and rejected. Names must be identifier-safe:
 letters, digits, underscores. camelCase names store snake_case — `publishedAt`
-becomes column `published_at`. Each field gets a blank line between property
-blocks.
+becomes column `published_at`. The exception is mongoose, which has no
+schema-level path rename, so it stores the property name unchanged
+(`publishedAt`, not `published_at`). Each field gets a blank line between
+property blocks.
 
 **Example**
 
