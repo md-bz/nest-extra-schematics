@@ -2327,6 +2327,9 @@ export default defineConfig({
       expect(service).toContain('this.userModel.findByPk(id)');
       expect(service).toContain('this.userModel.create(');
       expect(service).toContain('await user.destroy()');
+      // update must not rely on RETURNING, which only some dialects support
+      expect(service).not.toContain('returning: true');
+      expect(service).toContain('await user.update(updateUserDto)');
       expect(service).toContain("name === 'SequelizeUniqueConstraintError'");
       expect(service).not.toContain('userRepository');
       expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);

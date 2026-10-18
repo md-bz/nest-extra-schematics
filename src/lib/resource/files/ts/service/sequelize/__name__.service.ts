@@ -37,12 +37,13 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: number, <% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input: Update<%= singular(classify(name)) %>Input<% } %>): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Model.findByPk(id);
+    if (!<%= lowercased(singular(classify(name))) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+
     try {
-      const [affected, instances] = await this.<%= lowercased(singular(classify(name))) %>Model.update(<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %> as <%= singular(classify(name)) %>, { where: { id }, returning: true });
-      if (!affected) {
-        throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
-      }
-      return instances[0];
+      return await <%= lowercased(singular(classify(name))) %>.update(<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %>);
     } catch (err) {
       if (isDuplicateKey(err)) {
         throw new ConflictException('Value already exists');

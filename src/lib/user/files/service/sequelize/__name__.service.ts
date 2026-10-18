@@ -44,12 +44,13 @@ export class <%= classify(name) %>Service {
   }
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
+    const <%= lowercased(singular(classify(name))) %> = await this.<%= lowercased(singular(classify(name))) %>Model.findByPk(id);
+    if (!<%= lowercased(singular(classify(name))) %>) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+
     try {
-      const [affected, instances] = await this.<%= lowercased(singular(classify(name))) %>Model.update(update<%= singular(classify(name)) %>Dto as <%= singular(classify(name)) %>, { where: { id }, returning: true });
-      if (!affected) {
-        throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
-      }
-      return instances[0];
+      return await <%= lowercased(singular(classify(name))) %>.update(update<%= singular(classify(name)) %>Dto);
     } catch (err) {
       if (isDuplicateKey(err)) {
         throw new ConflictException('Username or email already exists');

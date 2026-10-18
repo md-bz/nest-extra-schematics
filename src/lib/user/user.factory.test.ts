@@ -438,6 +438,9 @@ describe('User Factory', () => {
     expect(service).toContain('findByUsername(username: string)');
     expect(service).toContain('await user.destroy()');
     expect(service).toContain('UnauthorizedException');
+    // update must not rely on RETURNING, which only some dialects support
+    expect(service).not.toContain('returning: true');
+    expect(service).toContain('await user.update(updateUserDto)');
     expect(service).not.toContain('userRepository');
 
     const module = tree.readContent('/users/users.module.ts');
