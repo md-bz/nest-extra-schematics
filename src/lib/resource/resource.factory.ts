@@ -335,7 +335,43 @@ function addEntityToAppModuleIfApplies(options: ResourceOptions): Rule {
       true,
     );
 
-    const entities = findForRootEntities(source);
+    const configs = findForRootConfigs(source);
+    if (!configs.length) return tree;
+
+    // an entity only runs on a connection built for its own driver, so pick the
+    // forRoot that matches rather than the first one in the file
+    const wanted = TYPEORM_DRIVER_TYPES[options.db!] ?? [];
+    const typed = configs.map((config) => ({
+      config,
+      type: findProperty<StringLiteral>(
+        source,
+        config,
+        'type',
+        SyntaxKind.StringLiteral,
+      )?.text,
+    }));
+    const target =
+      typed.find((c) => c.type && wanted.includes(c.type))?.config ??
+      typed.find((c) => !c.type)?.config;
+
+    if (!target) {
+      const found = typed
+        .map((c) => c.type)
+        .filter(Boolean)
+        .join('", "');
+      throw new SchematicsException(
+        `Cannot add a "${options.db}" resource to ${options.module}, whose TypeOrmModule.forRoot uses "${found}". ` +
+          `A connection only loads entities built for its own driver. ` +
+          `Use a separate project per database.`,
+      );
+    }
+
+    const entities = findProperty<ArrayLiteralExpression>(
+      source,
+      target,
+      'entities',
+      SyntaxKind.ArrayLiteralExpression,
+    );
     if (!entities) return tree;
 
     const entity = classify(pluralize.singular(options.name));
@@ -378,32 +414,25 @@ function addEntityToAppModuleIfApplies(options: ResourceOptions): Rule {
   };
 }
 
-function findForRootEntities(
-  source: SourceFile,
-): ArrayLiteralExpression | undefined {
-  let result: ArrayLiteralExpression | undefined;
+/** Driver names `type` accepts per --db, including the common aliases. */
+const TYPEORM_DRIVER_TYPES: Record<string, string[]> = {
+  mongodb: ['mongodb'],
+  postgres: ['postgres'],
+  sqlite: ['better-sqlite3', 'sqlite', 'sqlite3'],
+  mysql: ['mysql', 'mariadb'],
+};
+
+function findForRootConfigs(source: SourceFile): ObjectLiteralExpression[] {
+  const results: ObjectLiteralExpression[] = [];
 
   const visit = (node: Node) => {
-    if (result) return;
-
     if (node.kind === SyntaxKind.CallExpression) {
       const call = node as CallExpression;
       if (
         call.expression.getText(source) === 'TypeOrmModule.forRoot' &&
         call.arguments[0]?.kind === SyntaxKind.ObjectLiteralExpression
       ) {
-        const config = call.arguments[0] as ObjectLiteralExpression;
-
-        const property = config.properties.find(
-          (p) =>
-            p.kind === SyntaxKind.PropertyAssignment &&
-            (p as PropertyAssignment).name.getText(source) === 'entities',
-        ) as PropertyAssignment | undefined;
-
-        if (property?.initializer.kind === SyntaxKind.ArrayLiteralExpression) {
-          result = property.initializer as ArrayLiteralExpression;
-          return;
-        }
+        results.push(call.arguments[0] as ObjectLiteralExpression);
       }
     }
 
@@ -411,7 +440,23 @@ function findForRootEntities(
   };
 
   visit(source);
-  return result;
+  return results;
+}
+
+function findProperty<T extends Expression>(
+  source: SourceFile,
+  config: ObjectLiteralExpression,
+  name: string,
+  kind: SyntaxKind,
+): T | undefined {
+  const property = config.properties.find(
+    (p) =>
+      p.kind === SyntaxKind.PropertyAssignment &&
+      (p as PropertyAssignment).name.getText(source) === name,
+  ) as PropertyAssignment | undefined;
+  return property?.initializer.kind === kind
+    ? (property.initializer as T)
+    : undefined;
 }
 
 function addEntityToDrizzleConfigIfApplies(options: ResourceOptions): Rule {

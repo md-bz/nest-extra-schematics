@@ -1746,6 +1746,86 @@ export class AppModule {}
       expect(content).not.toContain('[Order, Order]');
       expect(content.match(/import { Order } from /g)!.length).toBe(1);
     });
+
+    it('should add the entity to the forRoot matching the requested driver', async () => {
+      const base = Tree.empty();
+      base.create(
+        '/src/app.module.ts',
+        `import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/entities/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mongodb',
+      database: 'test',
+      entities: [User],
+    }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      database: 'test',
+      entities: [],
+    }),
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+`,
+      );
+      const tree = await runner.runSchematic(
+        'resource',
+        {
+          name: 'orders',
+          db: 'postgres',
+          orm: 'typeorm',
+          path: 'src',
+        },
+        base,
+      );
+      const content = tree.readContent('/src/app.module.ts');
+      // the sql entity goes to the postgres connection, not the first forRoot
+      expect(content).toContain('entities: [User]');
+      expect(content).toContain('entities: [Order]');
+      expect(content).not.toContain('[User, Order]');
+    });
+
+    it('should refuse when no forRoot uses the requested driver', async () => {
+      const base = Tree.empty();
+      base.create(
+        '/src/app.module.ts',
+        `import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/entities/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mongodb',
+      database: 'test',
+      entities: [User],
+    }),
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+`,
+      );
+      await expect(
+        runner.runSchematic(
+          'resource',
+          {
+            name: 'orders',
+            db: 'postgres',
+            orm: 'typeorm',
+            path: 'src',
+          },
+          base,
+        ),
+      ).rejects.toThrow(/forRoot uses "mongodb"/);
+    });
   });
 
   describe('[REST API - TypeORM + SQL]', () => {

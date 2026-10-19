@@ -204,8 +204,10 @@ generating.
 
 Beyond writing files, it edits existing project files. Expect and review these:
 
-- **typeorm** — appends the entity class to the `entities` array inside
-  `TypeOrmModule.forRoot({…})` and adds an `import` line to the app module.
+- **typeorm** — appends the entity class to the `entities` array inside the
+  `TypeOrmModule.forRoot({…})` whose `type` matches the chosen database, and
+  adds an `import` line to the app module. With several connections it refuses
+  when none matches rather than wiring an entity into an incompatible driver.
 - **drizzle** — appends the schema path to the `schema` array in
   `drizzle.config.ts`, creating that file (with the right `dialect`) if absent.
   Refuses when the existing config uses a different `dialect`: drizzle-kit reads
