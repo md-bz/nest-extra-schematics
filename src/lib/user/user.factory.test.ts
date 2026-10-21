@@ -354,6 +354,12 @@ describe('User Factory', () => {
     expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     expect(service).toContain('e?.cause?.code');
     expect(service).toContain('select(publicUserColumns)');
+    expect(service).toContain('.returning(publicUserColumns)');
+    expect(service).toContain(
+      'set({ password }).where(eq(users.id, id)).returning(publicUserColumns)',
+    );
+    expect(service).not.toContain('return { ...user, password }');
+    expect(service).not.toContain('...updateUserDto');
     expect(service).not.toContain('password: users.password');
     expect(tree.readContent('drizzle.config.ts')).toContain(
       './users/schemas/user.schema.ts',
@@ -377,9 +383,20 @@ describe('User Factory', () => {
     expect(tree.readContent('/users/schemas/user.schema.ts')).toContain(
       "mysqlTable('users', {",
     );
-    expect(tree.readContent('/users/users.service.ts')).toContain(
-      '$returningId()',
+    const service = tree.readContent('/users/users.service.ts');
+    expect(service).toContain('$returningId()');
+    // mysql has no UPDATE ... RETURNING, so the row is read back
+    expect(service).toContain(
+      'await this.db.update(users).set(updateUserDto).where(eq(users.id, id));',
     );
+    expect(service).toContain(
+      'const [updated] = await this.db.select(publicUserColumns).from(users)',
+    );
+    expect(service).toContain(
+      'await this.db.update(users).set({ password }).where(eq(users.id, id));',
+    );
+    expect(service).not.toContain('...updateUserDto');
+    expect(service).not.toContain('return { ...user, password }');
   });
 
   it('should generate a sequelize user with a scoped argon2 hook', async () => {

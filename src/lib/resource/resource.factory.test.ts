@@ -2108,6 +2108,10 @@ export class AppModule {}
       );
       expect(service).toContain('.returning()');
       expect(service).toContain(
+        '.set(updateUserDto).where(eq(users.id, id)).returning();',
+      );
+      expect(service).not.toContain('...updateUserDto');
+      expect(service).toContain(
         'throw new NotFoundException(`User with ID ${id} not found`);',
       );
       expect(service).not.toContain('Repository');
@@ -2165,6 +2169,14 @@ export class AppModule {}
       expect(service).toContain('MySql2Database');
       expect(service).toContain('$returningId()');
       expect(service).not.toContain('.returning()');
+      // mysql has no UPDATE ... RETURNING, so the row is read back
+      expect(service).toContain(
+        'await this.db.update(users).set(updateUserDto).where(eq(users.id, id));',
+      );
+      expect(service).toContain(
+        'const [updated] = await this.db.select().from(users)',
+      );
+      expect(service).not.toContain('...updateUserDto');
     });
 
     it('should emit one duplicate-key guard covering every driver', async () => {

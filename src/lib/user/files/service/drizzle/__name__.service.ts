@@ -69,12 +69,13 @@ export class <%= classify(name) %>Service {
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
     try {
-      const [<%= lowercased(singular(classify(name))) %>] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
-      if (!<%= lowercased(singular(classify(name))) %>) {
+<% if (db === 'mysql') { %>      await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id));
+      const [updated] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+<% } else { %>      const [updated] = await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id)).returning(publicUserColumns);
+<% } %>      if (!updated) {
         throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
       }
-      await this.db.update(<%= plural(lowercased(name)) %>).set(update<%= singular(classify(name)) %>Dto).where(eq(<%= plural(lowercased(name)) %>.id, id));
-      return { ...<%= lowercased(singular(classify(name))) %>, ...update<%= singular(classify(name)) %>Dto } as <%= entityType %>;
+      return updated as <%= entityType %>;
     } catch (err) {
       if (isDuplicateKey(err)) {
         throw new ConflictException('Username or email already exists');
@@ -96,8 +97,13 @@ export class <%= classify(name) %>Service {
       throw new UnauthorizedException('Current password is incorrect');
     }
     const password = await argon2.hash(changePasswordDto.password);
-    await this.db.update(<%= plural(lowercased(name)) %>).set({ password }).where(eq(<%= plural(lowercased(name)) %>.id, id));
-    return { ...<%= lowercased(singular(classify(name))) %>, password };
+<% if (db === 'mysql') { %>    await this.db.update(<%= plural(lowercased(name)) %>).set({ password }).where(eq(<%= plural(lowercased(name)) %>.id, id));
+    const [updated] = await this.db.select(publicUserColumns).from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+<% } else { %>    const [updated] = await this.db.update(<%= plural(lowercased(name)) %>).set({ password }).where(eq(<%= plural(lowercased(name)) %>.id, id)).returning(publicUserColumns);
+<% } %>    if (!updated) {
+      throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
+    }
+    return updated as <%= entityType %>;
   }
 
   async remove(id: number): <%= returnOneType %> {

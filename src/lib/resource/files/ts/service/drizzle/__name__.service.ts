@@ -44,12 +44,13 @@ export class <%= classify(name) %>Service {
 
   async update(id: number, <% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input: Update<%= singular(classify(name)) %>Input<% } %>): <%= returnOneType %> {
     try {
-      const [<%= lowercased(singular(classify(name))) %>] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
-      if (!<%= lowercased(singular(classify(name))) %>) {
+<% if (db === 'mysql') { %>      await this.db.update(<%= plural(lowercased(name)) %>).set(<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+      const [updated] = await this.db.select().from(<%= plural(lowercased(name)) %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
+<% } else { %>      const [updated] = await this.db.update(<%= plural(lowercased(name)) %>).set(<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %>).where(eq(<%= plural(lowercased(name)) %>.id, id)).returning();
+<% } %>      if (!updated) {
         throw new NotFoundException(`<%= singular(classify(name)) %> with ID ${id} not found`);
       }
-      await this.db.update(<%= plural(lowercased(name)) %>).set(<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %>).where(eq(<%= plural(lowercased(name)) %>.id, id));
-      return { ...<%= lowercased(singular(classify(name))) %>, ...<% if (type !== 'graphql-code-first' && type !== 'graphql-schema-first') { %>update<%= singular(classify(name)) %>Dto<% } else { %>update<%= singular(classify(name)) %>Input<% } %> };
+      return updated;
     } catch (err) {
       if (isDuplicateKey(err)) {
         throw new ConflictException('Value already exists');
