@@ -8,7 +8,7 @@ describe('<%= classify(name) %>Controller', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [<%= classify(name) %>Controller],
-      providers: [<%= classify(name) %>Service],
+      providers: [{ provide: <%= classify(name) %>Service, useValue: {} }],
     }).compile();
 
     controller = module.get<<%= classify(name) %>Controller>(<%= classify(name) %>Controller);

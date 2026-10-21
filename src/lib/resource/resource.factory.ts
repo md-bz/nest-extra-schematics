@@ -172,6 +172,50 @@ function transform(options: ResourceOptions): ResourceOptions {
   return target;
 }
 
+/**
+ * The templates cannot branch per ORM, so the service spec's mock imports and
+ * providers are rendered here.
+ */
+function specMockOptions(
+  options: ResourceOptions,
+  isEsm: boolean,
+): { specMockImports: string; specMockProviders: string } {
+  const entity = pluralize.singular(classify(options.name));
+  const entityPath = entityTypeOptions(options.name, options.orm).entityPath;
+  const entityImport = `import { ${entity} } from '${entityPath}${isEsm ? '.js' : ''}';\n`;
+  const provider = (token: string) => `, { provide: ${token}, useValue: {} }`;
+
+  switch (options.orm) {
+    case 'typeorm':
+      return {
+        specMockImports: `import { getRepositoryToken } from '@nestjs/typeorm';\n${entityImport}`,
+        specMockProviders: provider(`getRepositoryToken(${entity})`),
+      };
+    case 'mongoose':
+      return {
+        specMockImports: `import { getModelToken } from '@nestjs/mongoose';\n${entityImport}`,
+        specMockProviders: provider(`getModelToken(${entity}.name)`),
+      };
+    case 'sequelize':
+      return {
+        specMockImports: `import { getModelToken } from '@nestjs/sequelize';\n${entityImport}`,
+        specMockProviders: provider(`getModelToken(${entity})`),
+      };
+    case 'mikroorm':
+      return {
+        specMockImports: `import { EntityManager } from '@mikro-orm/${mikroOrmDriver(options.db)}';\nimport { getRepositoryToken } from '@mikro-orm/nestjs';\n${entityImport}`,
+        specMockProviders: `${provider(`getRepositoryToken(${entity})`)}, { provide: EntityManager, useValue: {} }`,
+      };
+    case 'drizzle':
+      return {
+        specMockImports: `import { getDrizzleToken } from '@nestjs/drizzle';\n`,
+        specMockProviders: provider('getDrizzleToken()'),
+      };
+    default:
+      return { specMockImports: '', specMockProviders: '' };
+  }
+}
+
 function generate(options: ResourceOptions): Source {
   const {
     isMongoose,
@@ -264,6 +308,7 @@ function generate(options: ResourceOptions): Source {
         mikroOrmMongo,
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
+        ...specMockOptions(options, !!(options as any).isEsm),
         ...drizzleOptions(options.db),
         ...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
         ...templateHelpers,

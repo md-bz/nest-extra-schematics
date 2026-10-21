@@ -7,7 +7,10 @@ describe('<%= classify(name) %>Gateway', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [<%= classify(name) %>Gateway, <%= classify(name) %>Service],
+      providers: [
+        <%= classify(name) %>Gateway,
+        { provide: <%= classify(name) %>Service, useValue: {} },
+      ],
     }).compile();
 
     gateway = module.get<<%= classify(name) %>Gateway>(<%= classify(name) %>Gateway);

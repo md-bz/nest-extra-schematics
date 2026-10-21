@@ -148,7 +148,7 @@ describe('UsersController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [UsersService],
+      providers: [{ provide: UsersService, useValue: {} }],
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
@@ -384,7 +384,7 @@ describe('UsersController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [UsersService],
+      providers: [{ provide: UsersService, useValue: {} }],
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
@@ -618,7 +618,10 @@ describe('UsersGateway', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersGateway, UsersService],
+      providers: [
+        UsersGateway,
+        { provide: UsersService, useValue: {} },
+      ],
     }).compile();
 
     gateway = module.get<UsersGateway>(UsersGateway);
@@ -860,7 +863,10 @@ describe('UsersResolver', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersResolver, UsersService],
+      providers: [
+        UsersResolver,
+        { provide: UsersService, useValue: {} },
+      ],
     }).compile();
 
     resolver = module.get<UsersResolver>(UsersResolver);
@@ -1026,7 +1032,10 @@ describe('UsersResolver', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersResolver, UsersService],
+      providers: [
+        UsersResolver,
+        { provide: UsersService, useValue: {} },
+      ],
     }).compile();
 
     resolver = module.get<UsersResolver>(UsersResolver);
@@ -1495,6 +1504,80 @@ type Mutation {
         'async remove(id: string): Promise<UserDocument>',
       );
       expect(service).not.toContain('Promise<UserDocument | null>');
+    });
+  });
+
+  describe('[Specs - dependency mocking]', () => {
+    const cases = [
+      {
+        db: 'postgres',
+        orm: 'typeorm',
+        imports: [
+          "import { getRepositoryToken } from '@nestjs/typeorm'",
+          "import { User } from './entities/user.entity'",
+        ],
+        provider: '{ provide: getRepositoryToken(User), useValue: {} }',
+      },
+      {
+        db: 'mongodb',
+        orm: 'mongoose',
+        imports: [
+          "import { getModelToken } from '@nestjs/mongoose'",
+          "import { User } from './schemas/user.schema'",
+        ],
+        provider: '{ provide: getModelToken(User.name), useValue: {} }',
+      },
+      {
+        db: 'postgres',
+        orm: 'sequelize',
+        imports: [
+          "import { getModelToken } from '@nestjs/sequelize'",
+          "import { User } from './entities/user.entity'",
+        ],
+        provider: '{ provide: getModelToken(User), useValue: {} }',
+      },
+      {
+        db: 'postgres',
+        orm: 'mikroorm',
+        imports: [
+          "import { EntityManager } from '@mikro-orm/postgresql'",
+          "import { getRepositoryToken } from '@mikro-orm/nestjs'",
+          "import { User } from './entities/user.entity'",
+        ],
+        provider: '{ provide: getRepositoryToken(User), useValue: {} }',
+        extra: '{ provide: EntityManager, useValue: {} }',
+      },
+      {
+        db: 'postgres',
+        orm: 'drizzle',
+        imports: ["import { getDrizzleToken } from '@nestjs/drizzle'"],
+        provider: '{ provide: getDrizzleToken(), useValue: {} }',
+      },
+    ];
+
+    for (const { db, orm, imports, provider, extra } of cases) {
+      it(`should mock the ${orm} dependency for ${db}`, async () => {
+        const tree = await runner.runSchematic('resource', {
+          name: 'users',
+          db,
+          orm,
+        });
+        const spec = tree.readContent('/users/users.service.spec.ts');
+        for (const line of [...imports, provider, ...(extra ? [extra] : [])]) {
+          expect(spec).toContain(line);
+        }
+      });
+    }
+
+    it('should mock the service in the controller spec', async () => {
+      const tree = await runner.runSchematic('resource', {
+        name: 'users',
+        db: 'postgres',
+        orm: 'typeorm',
+      });
+      expect(tree.readContent('/users/users.controller.spec.ts')).toContain(
+        'providers: [{ provide: UsersService, useValue: {} }]',
+      );
     });
   });
 
