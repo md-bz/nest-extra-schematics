@@ -6,7 +6,6 @@ import { ChangePasswordDto } from './dto/change-password.dto<%= isEsm ? '.js' : 
 import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Document } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
-
 <%= duplicateKeyGuard %>
 
 @Injectable()

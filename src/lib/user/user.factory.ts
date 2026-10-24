@@ -17,7 +17,6 @@ import {
   url,
 } from '@angular-devkit/schematics';
 import pluralize from 'pluralize';
-import { DUPLICATE_KEY_GUARD } from '../../utils/fields.js';
 import { normalizeToKebabOrSnakeCase } from '../../utils/formatting.js';
 import { templateHelpers } from '../../utils/template-helpers.js';
 import { installIfNotInstalled } from '../../utils/install-deps.utils.js';
@@ -31,6 +30,7 @@ import {
   hasOrm,
   ormFlags,
 } from '../../utils/entity-type.options.js';
+import { duplicateKeyImport } from '../../utils/duplicate-key.js';
 import { drizzleOptions } from '../../utils/drizzle.options.js';
 import { mikroOrmDriver } from '../../utils/mikro-orm.options.js';
 import {
@@ -120,6 +120,7 @@ function overwriteUserFiles(options: UserOptions): Rule {
     // hook or typeorm save()); password must never flow through
     // findByIdAndUpdate/.update(), so the update DTO drops it on both
     const { ...flags } = ormFlags(options.orm, options.db);
+    const isEsm = isEsmProject(tree);
     const {
       isMongoose,
       isTypeOrm,
@@ -168,11 +169,11 @@ function overwriteUserFiles(options: UserOptions): Rule {
           ...options,
           ...ormFlags(options.orm, options.db),
           mikroOrmDriver: mikroOrmDriver(options.db),
-          isEsm: isEsmProject(tree),
+          isEsm,
+          duplicateKeyGuard: duplicateKeyImport(options.flat, isEsm),
           ...entityTypeOptions(options.name, options.orm),
           ...drizzleOptions(options.db),
           ...templateHelpers,
-          duplicateKeyGuard: DUPLICATE_KEY_GUARD,
         }),
         forEach((file) => ({
           content: file.content,

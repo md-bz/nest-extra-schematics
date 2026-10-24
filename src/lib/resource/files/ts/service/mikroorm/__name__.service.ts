@@ -8,7 +8,6 @@ import { Update<%= singular(classify(name)) %>Input } from './dto/update-<%= sin
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';<% if (mikroOrmMongo) { %>
 import { ObjectId } from 'mongodb';
 <% } %>
-
 <%= duplicateKeyGuard %>
 
 @Injectable()

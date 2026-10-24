@@ -1,4 +1,4 @@
-import { join, normalize, Path, strings } from '@angular-devkit/core';
+import { dirname, join, normalize, Path, strings } from '@angular-devkit/core';
 import { classify } from '@angular-devkit/core/src/utils/strings';
 import {
   apply,
@@ -32,6 +32,10 @@ import {
   StringLiteral,
 } from 'typescript';
 import { ScriptTarget } from 'typescript';
+import {
+  DUPLICATE_KEY_GUARD,
+  duplicateKeyImport,
+} from '../../utils/duplicate-key.js';
 import {
   DeclarationOptions,
   ModuleDeclarator,
@@ -92,6 +96,7 @@ export function main(options: ResourceOptions): Rule {
         addMikroOrmDependenciesIfApplies(options),
         addSequelizeDependenciesIfApplies(options),
         mergeSourceRoot(options),
+        addDuplicateKeyGuardIfApplies(options),
         addDeclarationToModule(options),
         addEntityToAppModuleIfApplies(options),
         mergeWith(generate(options)),
@@ -309,6 +314,10 @@ function generate(options: ResourceOptions): Source {
         mikroOrmDriver: mikroOrmDriver(options.db),
         ...entityTypeOptions(options.name, options.orm),
         ...specMockOptions(options, !!(options as any).isEsm),
+        duplicateKeyGuard: duplicateKeyImport(
+          options.flat,
+          !!(options as any).isEsm,
+        ),
         ...drizzleOptions(options.db),
         ...drizzleSchemaOptions(options.db, parsed.drizzleColumnFns),
         ...templateHelpers,
@@ -342,6 +351,21 @@ export function addDeclarationToModule(options: ResourceOptions): Rule {
         isEsm: isEsmProject(tree),
       } as DeclarationOptions),
     );
+    return tree;
+  };
+}
+
+function addDuplicateKeyGuardIfApplies(options: ResourceOptions): Rule {
+  return (tree: Tree) => {
+    if (!options.crud || !hasOrm(options.orm)) {
+      return tree;
+    }
+    const dir = normalize(options.path as Path);
+    const root = options.flat ? dir : dirname(dir);
+    const path = join(root, 'common/duplicate-key.ts' as Path);
+    if (!tree.exists(path)) {
+      tree.create(path, DUPLICATE_KEY_GUARD);
+    }
     return tree;
   };
 }

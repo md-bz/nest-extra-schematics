@@ -6,7 +6,6 @@ import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singu
 import { Create<%= singular(classify(name)) %>Input } from './dto/create-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Input } from './dto/update-<%= singular(name) %>.input<%= isEsm ? '.js' : '' %>';<% } %>
 import { <%= singular(classify(name)) %>, <%= singular(classify(name)) %>Document } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
-
 <%= duplicateKeyGuard %>
 
 @Injectable()

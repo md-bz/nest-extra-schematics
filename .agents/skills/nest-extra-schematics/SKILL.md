@@ -226,7 +226,9 @@ Beyond writing files, it edits existing project files. Expect and review these:
 
 Services map duplicate-key errors to `ConflictException` (codes `11000`,
 `23505`, `ER_DUP_ENTRY`, `SQLITE_CONSTRAINT*`) and throw `NotFoundException` on
-missing rows. Return types are concrete (`Promise<Note>`), not `any`.
+missing rows. The guard is generated once at `src/common/duplicate-key.ts`; every
+service imports `isDuplicateKey` from there. Return types are concrete
+(`Promise<Note>`), not `any`.
 
 ## Gotchas
 

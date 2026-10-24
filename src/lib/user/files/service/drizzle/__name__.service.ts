@@ -7,6 +7,7 @@ import { ChangePasswordDto } from './dto/change-password.dto<%= isEsm ? '.js' : 
 import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= plural(lowercased(name)) %>, type <%= entityType %> } from './schemas/<%= singular(name) %>.schema<%= isEsm ? '.js' : '' %>';
+<%= duplicateKeyGuard %>
 
 const publicUserColumns = {
   id: <%= plural(lowercased(name)) %>.id,
@@ -16,8 +17,6 @@ const publicUserColumns = {
   lastName: <%= plural(lowercased(name)) %>.lastName,
   phoneNumber: <%= plural(lowercased(name)) %>.phoneNumber,
 };
-
-<%= duplicateKeyGuard %>
 
 @Injectable()
 export class <%= classify(name) %>Service {

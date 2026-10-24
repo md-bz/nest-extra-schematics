@@ -243,17 +243,7 @@ export interface ParsedFields {
   transformerImports: string;
   graphqlDecorators: string;
   graphqlDecoratorsAndTypes: string;
-  duplicateKeyGuard: string;
 }
-
-export const DUPLICATE_KEY_GUARD = `function isDuplicateKey(err: unknown): boolean {
-  const e = err as { name?: string; code?: string | number; driverError?: { code?: string | number }; cause?: { code?: string | number } };
-  if (e?.name === 'SequelizeUniqueConstraintError') {
-    return true;
-  }
-  const code = e?.cause?.code ?? e?.driverError?.code ?? e?.code;
-  return code === '23505' || code === 'ER_DUP_ENTRY' || code === 11000 || String(code).startsWith('SQLITE_CONSTRAINT');
-}`;
 
 export function parseFields(
   spec?: string,
@@ -316,7 +306,6 @@ export function parseFields(
       : '',
     graphqlDecorators: graphqlImport(['ObjectType', 'Field'], fields),
     graphqlDecoratorsAndTypes: graphqlImport(['InputType', 'Field'], fields),
-    duplicateKeyGuard: DUPLICATE_KEY_GUARD,
   };
 }
 
@@ -401,7 +390,6 @@ function empty(ctx: FieldContext): ParsedFields {
     transformerImports: '',
     graphqlDecorators: 'ObjectType, Field, Int',
     graphqlDecoratorsAndTypes: 'InputType, Int, Field',
-    duplicateKeyGuard: DUPLICATE_KEY_GUARD,
   };
 }
 

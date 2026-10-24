@@ -19,6 +19,7 @@ describe('User Factory', () => {
       orm: 'mongoose',
     });
     expect(tree.files).toEqual([
+      '/common/duplicate-key.ts',
       '/users/users.controller.spec.ts',
       '/users/users.controller.ts',
       '/users/users.module.ts',
@@ -352,7 +353,12 @@ describe('User Factory', () => {
     );
     expect(service).not.toContain('this.userRepository');
     expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
-    expect(service).toContain('e?.cause?.code');
+    expect(service).toContain(
+      "import { isDuplicateKey } from '../common/duplicate-key';",
+    );
+    expect(tree.readContent('/common/duplicate-key.ts')).toContain(
+      'e?.cause?.code',
+    );
     expect(service).toContain('select(publicUserColumns)');
     expect(service).toContain('.returning(publicUserColumns)');
     expect(service).toContain(

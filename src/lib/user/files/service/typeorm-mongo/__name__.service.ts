@@ -7,7 +7,6 @@ import { ChangePasswordDto } from './dto/change-password.dto<%= isEsm ? '.js' : 
 import { Create<%= singular(classify(name)) %>Dto } from './dto/create-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { Update<%= singular(classify(name)) %>Dto } from './dto/update-<%= singular(name) %>.dto<%= isEsm ? '.js' : '' %>';
 import { <%= singular(classify(name)) %> } from './entities/<%= singular(name) %>.entity<%= isEsm ? '.js' : '' %>';
-
 <%= duplicateKeyGuard %>
 
 const publicSelect = { id: true, username: true, email: true, firstName: true, lastName: true, phoneNumber: true };

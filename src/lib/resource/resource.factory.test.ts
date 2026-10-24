@@ -1419,6 +1419,7 @@ type Mutation {
       };
       const tree = await runner.runSchematic('resource', options);
       expect(tree.files).toEqual([
+        '/common/duplicate-key.ts',
         '/users/users.controller.spec.ts',
         '/users/users.controller.ts',
         '/users/users.module.ts',
@@ -1634,6 +1635,7 @@ type Mutation {
       };
       const tree = await runner.runSchematic('resource', options);
       expect(tree.files).toEqual([
+        '/common/duplicate-key.ts',
         '/users/users.controller.spec.ts',
         '/users/users.controller.ts',
         '/users/users.module.ts',
@@ -1934,6 +1936,7 @@ export class AppModule {}
 
         it('should generate entity file instead of schema', () => {
           expect(tree.files).toEqual([
+            '/common/duplicate-key.ts',
             '/users/users.controller.spec.ts',
             '/users/users.controller.ts',
             '/users/users.module.ts',
@@ -2156,6 +2159,7 @@ export class AppModule {}
       });
       expect(tree.files).toEqual([
         '/drizzle.config.ts',
+        '/common/duplicate-key.ts',
         '/users/users.controller.spec.ts',
         '/users/users.controller.ts',
         '/users/users.module.ts',
@@ -2199,7 +2203,12 @@ export class AppModule {}
       );
       expect(service).not.toContain('Repository');
       expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
-      expect(service).toContain('e?.cause?.code');
+      expect(service).toContain(
+        "import { isDuplicateKey } from '../common/duplicate-key';",
+      );
+      expect(tree.readContent('/common/duplicate-key.ts')).toContain(
+        'e?.cause?.code',
+      );
       expect(tree.readContent('/users/users.module.ts')).not.toContain(
         'forFeature',
       );
@@ -2275,12 +2284,17 @@ export class AppModule {}
           orm,
         });
         const service = tree.readContent('/users/users.service.ts');
-        expect(service).toContain('function isDuplicateKey(err: unknown)');
+        expect(service).toContain(
+          "import { isDuplicateKey } from '../common/duplicate-key';",
+        );
+        expect(service).not.toContain('function isDuplicateKey');
         // postgres, mysql, sqlite and mongo unique-violation codes
-        expect(service).toContain("'23505'");
-        expect(service).toContain("'ER_DUP_ENTRY'");
-        expect(service).toContain('SQLITE_CONSTRAINT');
-        expect(service).toContain('11000');
+        const guard = tree.readContent('/common/duplicate-key.ts');
+        expect(guard).toContain('export function isDuplicateKey(err: unknown)');
+        expect(guard).toContain("'23505'");
+        expect(guard).toContain("'ER_DUP_ENTRY'");
+        expect(guard).toContain('SQLITE_CONSTRAINT');
+        expect(guard).toContain('11000');
       }
     });
 
@@ -2505,7 +2519,12 @@ export default defineConfig({
       // update must not rely on RETURNING, which only some dialects support
       expect(service).not.toContain('returning: true');
       expect(service).toContain('await user.update(updateUserDto)');
-      expect(service).toContain("name === 'SequelizeUniqueConstraintError'");
+      expect(service).toContain(
+        "import { isDuplicateKey } from '../common/duplicate-key';",
+      );
+      expect(tree.readContent('/common/duplicate-key.ts')).toContain(
+        "name === 'SequelizeUniqueConstraintError'",
+      );
       expect(service).not.toContain('userRepository');
       expect((service.match(/new ConflictException/g) ?? []).length).toBe(2);
     });
@@ -2543,6 +2562,7 @@ export default defineConfig({
       });
       expect(tree.files).toEqual([
         '/mikro-orm.config.ts',
+        '/common/duplicate-key.ts',
         '/users/users.controller.spec.ts',
         '/users/users.controller.ts',
         '/users/users.module.ts',
