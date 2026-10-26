@@ -18,8 +18,7 @@ $ npm install --save-dev nest-extra-schematics
 documents every schematic, the field syntax and the per-ORM type mapping for
 AI agents. Note that `nest g` refuses unknown flags (`--fields`, `--db`, `--orm`
 all error out) — agents should call `npx @angular-devkit/schematics-cli
-'<collection>:resource' --name=… --fields=…` instead. See
-[`.agent/skills`](.agent/skills) for the symlinked copy most tools look in.
+'<collection>:resource' --name=… --fields=…` instead.
 
 ## Features
 
@@ -106,6 +105,10 @@ JWT auth (Passport) wired to the user resource. Two methods: `jwt` (password log
 $ nest g -c nest-extra-schematics auth
 ```
 
+## Missing features
+
+prisma is planned after prisma version 8 is stable.
+
 ## License
 
-Nest is [MIT licensed](LICENSE).
+nest-extra-schematics is [MIT licensed](LICENSE).
