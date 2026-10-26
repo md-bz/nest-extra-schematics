@@ -457,8 +457,12 @@ describe('User Factory', () => {
     expect(service).toContain('user.password = changePasswordDto.password;');
     expect(service).not.toContain('argon2.hash(changePasswordDto.password)');
     expect(service).not.toContain('await argon2.verify(\n      user.password,');
-    expect(service).toContain('findByEmail(email: string)');
-    expect(service).toContain('findByUsername(username: string)');
+    expect(service).toContain(
+      "findByEmail(email: string): Promise<User | null> {\n    return this.userModel.scope('withPassword').findOne({ where: { email } });",
+    );
+    expect(service).toContain(
+      "findByUsername(username: string): Promise<User | null> {\n    return this.userModel.scope('withPassword').findOne({ where: { username } });",
+    );
     expect(service).toContain('await user.destroy()');
     expect(service).toContain('UnauthorizedException');
     // update must not rely on RETURNING, which only some dialects support

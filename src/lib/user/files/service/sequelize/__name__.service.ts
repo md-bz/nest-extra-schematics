@@ -35,11 +35,11 @@ export class <%= classify(name) %>Service {
   }
 
   findByEmail(email: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Model.findOne({ where: { email } });
+    return this.<%= lowercased(singular(classify(name))) %>Model.scope('withPassword').findOne({ where: { email } });
   }
 
   findByUsername(username: string): <%= returnNullableType %> {
-    return this.<%= lowercased(singular(classify(name))) %>Model.findOne({ where: { username } });
+    return this.<%= lowercased(singular(classify(name))) %>Model.scope('withPassword').findOne({ where: { username } });
   }
 
   async update(id: number, update<%= singular(classify(name)) %>Dto: Update<%= singular(classify(name)) %>Dto): <%= returnOneType %> {
